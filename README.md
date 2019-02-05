@@ -1,3 +1,7 @@
 # COMS30115
 
-This is the repository for the Computer Graphics unit COMS30115 at the University of Bristol.
+make && cd ./Build && ./skeleton && cd ..
+
+and 
+
+export GLMDIR="/home/fe16/aa16366/linux/ComputerGraphics/COMS30115/Labs/glm"
