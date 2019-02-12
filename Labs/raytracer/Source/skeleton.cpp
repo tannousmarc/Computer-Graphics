@@ -26,14 +26,22 @@ struct Camera{
   float focalLength;
   vec4 cameraPos;
   mat4 cameraRotation;
+  float yaw;
 };
 
+struct Intersection
+{
+  vec4 position;
+  float distance;
+  int triangleIndex;
+};
+
+struct Light{
+  vec4 lightPos;
+  vec3 lightColor;
+}
 
 
-float focalLength = SCREEN_WIDTH;
-vec4 cameraPos(0,0,-3,1);
-float cameraRotation = 0.0f;
-float yaw = 0.0;
 
 /* ----------------------------------------------------------------------------*/
 
@@ -75,15 +83,23 @@ x = (t  u  v)^T
  */
 /* FUNCTIONS                                                                   */
 
-struct Intersection
-{
-  vec4 position;
-  float distance;
-  int triangleIndex;
-};
+
 
 void Update(Camera& cam);
 void Draw(screen* screen);
+
+void reset_camera(Camera &cam){
+  cam.focalLength = SCREEN_WIDTH;
+  cam.cameraPos = vec4(0,0,-4,1);
+  // I4
+  cam.cameraRotation = mat4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
+  cam.yaw = 0.0;
+}
+
+void reset_light(Light &light){
+  light.lightPos = vec4(0, -0.5, -0.7, 1.0);
+  light.lightColor = 14.0f * vec3(1, 1, 1);
+}
 
 void rotateY(Camera& cam, float angle){
   vec4 v1(cos(angle), 0, -sin(angle), 0);
@@ -95,13 +111,7 @@ void rotateY(Camera& cam, float angle){
   cam.cameraRotation = R;
 }
 
-void spacebar_reset(Camera &cam){
-  cam.focalLength = SCREEN_WIDTH;
-  cam.cameraPos = vec4(0,0,-4,1);
-  // I4
-  cam.cameraRotation = mat4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
-  yaw = 0.0;
-}
+
 bool ClosestIntersection( Camera& cam, vec4 dir,
     const vector<Triangle>& triangles,
     Intersection& closestIntersection ){
@@ -146,7 +156,7 @@ int main( int argc, char* argv[] )
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
   Camera cam;
-  spacebar_reset(cam);
+  reset_camera(cam);
 
   while( NoQuitMessageSDL() )
     {
@@ -181,7 +191,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam)
       Intersection inter;
       d.x = (x - screen->width/2);
       d.y = (y - screen->height/2);
-      d.z = focalLength;
+      d.z = cam.focalLength;
 
       if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
         PutPixelSDL(screen, x, y, triangles[inter.triangleIndex].color);
@@ -222,14 +232,14 @@ void Update(Camera &cam)
   // Move camera to the right
   }
   if( keyState[SDL_SCANCODE_Q]){
-    yaw -= 0.04;
-    rotateY(cam, yaw);
+    cam.yaw -= 0.04;
+    rotateY(cam, cam.yaw);
   }
   if( keyState[SDL_SCANCODE_E]){
-    yaw += 0.04;
-    rotateY(cam, yaw);
+    cam.yaw += 0.04;
+    rotateY(cam, cam.yaw);
   }
   if( keyState[SDL_SCANCODE_SPACE]){
-    spacebar_reset(cam);
+    reset_camera(cam);
   }
 }
