@@ -13,13 +13,27 @@ using glm::vec4;
 using glm::mat4;
 
 
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 240
+#define SCREEN_WIDTH 480
+#define SCREEN_HEIGHT 360
 #define FULLSCREEN_MODE false
+
+// struct Camera{
+//   float focalLength;
+//   vec4 cameraPos;
+// }
+
+struct Camera{
+  float focalLength;
+  vec4 cameraPos;
+  mat4 cameraRotation;
+};
+
+
 
 float focalLength = SCREEN_WIDTH;
 vec4 cameraPos(0,0,-3,1);
-
+float cameraRotation = 0.0f;
+float yaw = 0.0;
 
 /* ----------------------------------------------------------------------------*/
 
@@ -68,11 +82,27 @@ struct Intersection
   int triangleIndex;
 };
 
-void Update();
+void Update(Camera& cam);
 void Draw(screen* screen);
 
+void rotateY(Camera& cam, float angle){
+  vec4 v1(cos(angle), 0, -sin(angle), 0);
+  vec4 v2(0,1,0,0);
+  vec4 v3(sin(angle), 0, cos(angle), 0);
+  vec4 v4(0, 0, 0, 1);
 
-bool ClosestIntersection( vec4 start, vec4 dir,
+  mat4 R(v1, v2, v3, v4);
+  cam.cameraRotation = R;
+}
+
+void spacebar_reset(Camera &cam){
+  cam.focalLength = SCREEN_WIDTH;
+  cam.cameraPos = vec4(0,0,-4,1);
+  // I4
+  cam.cameraRotation = mat4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
+  yaw = 0.0;
+}
+bool ClosestIntersection( Camera& cam, vec4 dir,
     const vector<Triangle>& triangles,
     Intersection& closestIntersection ){
 
@@ -86,7 +116,7 @@ bool ClosestIntersection( vec4 start, vec4 dir,
     vec4 v2 = triangle.v2;
     vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
     vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
-    vec3 b = vec3(start.x-v0.x,start.y-v0.y,start.z-v0.z);
+    vec3 b = vec3(cam.cameraPos.x-v0.x,cam.cameraPos.y-v0.y,cam.cameraPos.z-v0.z);
     mat3 A( vec3(-dir), e1, e2 );
     // EXTENSION
     mat3 m = A;
@@ -108,18 +138,20 @@ bool ClosestIntersection( vec4 start, vec4 dir,
   return okay;
 };
 
-void Draw(screen* screen, vector<Triangle>& triangles);
+void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam);
 
 int main( int argc, char* argv[] )
 {
   vector<Triangle> triangles;
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
+  Camera cam;
+  spacebar_reset(cam);
 
   while( NoQuitMessageSDL() )
     {
-      Update();
-      Draw(screen, triangles);
+      Update(cam);
+      Draw(screen, triangles, cam);
       SDL_Renderframe(screen);
     }
 
@@ -130,7 +162,7 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen, vector<Triangle>& triangles)
+void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -151,7 +183,7 @@ void Draw(screen* screen, vector<Triangle>& triangles)
       d.y = (y - screen->height/2);
       d.z = focalLength;
 
-      if(ClosestIntersection(cameraPos, d, triangles, inter)){
+      if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
         PutPixelSDL(screen, x, y, triangles[inter.triangleIndex].color);
       }
     }
@@ -159,7 +191,7 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 }
 
 /*Place updates of parameters here*/
-void Update()
+void Update(Camera &cam)
 {
   static int t = SDL_GetTicks();
   /* Compute frame time */
@@ -172,25 +204,32 @@ void Update()
 
   // SDL_Event e;
   const uint8_t *keyState = SDL_GetKeyboardState(NULL);
-  if( keyState[SDL_SCANCODE_UP] )
-  {
-    printf("HERE");
-    cameraPos.z+=0.5;
-  // Move camera forward
+  if( keyState[SDL_SCANCODE_UP] ){
+    cam.cameraPos += cam.cameraRotation * vec4(0, 0, 0.25f, 0);
   }
-  if( keyState[SDL_SCANCODE_DOWN] )
-  {
-    cameraPos.z-=0.5;
-  // Move camera backward
+  if( keyState[SDL_SCANCODE_DOWN] ){
+    cam.cameraPos -= cam.cameraRotation * vec4(0, 0, 0.25f, 0);
   }
-  if( keyState[SDL_SCANCODE_LEFT] )
-  {
-    cameraPos.x -=0.5;
+  if( keyState[SDL_SCANCODE_LEFT] ){
+    // cameraPos.x -=0.25;
+    cam.cameraPos -= cam.cameraRotation * vec4(0.25f, 0, 0, 0);
+    // cam.cameraPos.x -= 0.25;
   // Move camera to the left
   }
-  if( keyState[SDL_SCANCODE_RIGHT] )
-  {
-    cameraPos.x +=0.5;
+  if( keyState[SDL_SCANCODE_RIGHT] ){
+    // cameraPos.x +=0.25;
+    cam.cameraPos += cam.cameraRotation * vec4(0.25f, 0, 0, 0);
   // Move camera to the right
+  }
+  if( keyState[SDL_SCANCODE_Q]){
+    yaw -= 0.04;
+    rotateY(cam, yaw);
+  }
+  if( keyState[SDL_SCANCODE_E]){
+    yaw += 0.04;
+    rotateY(cam, yaw);
+  }
+  if( keyState[SDL_SCANCODE_SPACE]){
+    spacebar_reset(cam);
   }
 }
