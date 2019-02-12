@@ -39,10 +39,9 @@ struct Intersection
 struct Light{
   vec4 lightPos;
   vec3 lightColor;
-}
+};
 
-
-
+vec3 indirectLight = 0.15f * vec3(1,1,1);
 /* ----------------------------------------------------------------------------*/
 
 
@@ -101,6 +100,49 @@ void reset_light(Light &light){
   light.lightColor = 14.0f * vec3(1, 1, 1);
 }
 
+bool ClosestIntersectionLight( vec4 start, vec4 dir,
+    const vector<Triangle>& triangles, Intersection inter){
+  bool okay = false;
+
+  for(unsigned int i = 0; i < triangles.size(); i++){
+    if((int) i == inter.triangleIndex)
+      continue;
+    Triangle triangle = triangles[i];
+    vec4 v0 = triangle.v0;
+    vec4 v1 = triangle.v1;
+    vec4 v2 = triangle.v2;
+    vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
+    vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
+    vec3 b = vec3(start.x-v0.x,start.y-v0.y,start.z-v0.z);
+    mat3 A( vec3(-dir), e1, e2 );
+    // EXTENSION
+    mat3 m = A;
+    m[0] = b;
+    float t = glm::determinant(m) / glm::determinant(A);
+    if(t > 0 && t < inter.distance){
+      vec3 x = glm::inverse( A ) * b;
+      if(x.y >= 0 && x.z >= 0 && (x.y + x.z <= 1)){
+        okay = true;
+        break;
+      }
+    }
+    // vec3 x = glm::inverse( A ) * b;
+  }
+
+  return okay;
+};
+
+vec3 directLight(Camera& cam, const vector<Triangle>& triangles, Intersection& inter, Light light){
+  Intersection light_inter = inter;
+  vec4 vecr = normalize(light.lightPos - inter.position);
+  float r = glm::length(light.lightPos - inter.position);
+  vec3 d = (light.lightColor * max(dot(vecr, normalize(triangles[inter.triangleIndex].normal)), 0.f)) / (float)(4.f * 3.14159 * r * r);
+  light_inter.distance = r;
+  if(ClosestIntersectionLight(inter.position + vecr * 0.001f, vecr, triangles, light_inter)){
+    d = vec3(0.f, 0.f, 0.f);
+  }
+  return d + indirectLight;
+}
 void rotateY(Camera& cam, float angle){
   vec4 v1(cos(angle), 0, -sin(angle), 0);
   vec4 v2(0,1,0,0);
@@ -148,7 +190,7 @@ bool ClosestIntersection( Camera& cam, vec4 dir,
   return okay;
 };
 
-void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam);
+void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light);
 
 int main( int argc, char* argv[] )
 {
@@ -157,11 +199,13 @@ int main( int argc, char* argv[] )
   LoadTestModel(triangles);
   Camera cam;
   reset_camera(cam);
+  Light light;
+  reset_light(light);
 
   while( NoQuitMessageSDL() )
     {
       Update(cam);
-      Draw(screen, triangles, cam);
+      Draw(screen, triangles, cam, light);
       SDL_Renderframe(screen);
     }
 
@@ -172,7 +216,7 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam)
+void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -194,7 +238,8 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam)
       d.z = cam.focalLength;
 
       if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
-        PutPixelSDL(screen, x, y, triangles[inter.triangleIndex].color);
+        vec3 lightD = directLight(cam, triangles, inter, light);
+        PutPixelSDL(screen, x, y, triangles[inter.triangleIndex].color * lightD);
       }
     }
   }
