@@ -1,5 +1,7 @@
 #include <iostream>
 #include <stdint.h>
+#include <stdlib.h>
+#include <time.h>  
 #include <limits.h>
 #include "intersections.cpp"
 
@@ -48,6 +50,7 @@ void rotateY(Camera& cam, float angle){
 
 int main( int argc, char* argv[] )
 {
+  srand (time(NULL));
   vector<Triangle> triangles;
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
@@ -96,6 +99,16 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
               d.z = cam.focalLength;
               if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
                 vec3 lightD = directLight(cam, triangles, inter, light);
+                for(int i = -50; i < 50; i++){
+                  Light newLight;
+                  newLight.lightPos = vec4(light.lightPos.x + i * 0.001, light.lightPos.y, light.lightPos.z + i * 0.001, 1.0);
+                  newLight.lightColor = light.lightColor;
+                  lightD += directLight(cam, triangles, inter, newLight);
+                }
+
+                lightD.x /= 101;
+                lightD.y /= 101;
+                lightD.z /= 101;
                 neighbouringPixelColours[n] = triangles[inter.triangleIndex].color * lightD;
               }
             }
@@ -118,7 +131,8 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
         }
       }
     }
-  }else{
+  }
+  else{
     for(int y=0; y<screen->height; y++){
       for(int x=0; x<screen->width; x++){
         Intersection inter;
