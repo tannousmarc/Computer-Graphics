@@ -26,7 +26,7 @@ vec3 directLight(Camera& cam, const vector<Triangle>& triangles, Intersection& i
   float r = glm::length(light.lightPos - inter.position);
 
   vec3 d = (light.lightColor * max(dot(vecr, normalize(triangles[inter.triangleIndex].normal)), 0.f))
-           / 
+           /
            (float)(4.f * 3.14159 * r * r);
 
   light_inter.distance = r;
@@ -69,6 +69,8 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
+float dirX[] = {-0.5, 0, 0.5, 0};
+float dirY[] = {0,  0.5, 0, -0.5};
 
 void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light)
 {
@@ -78,16 +80,56 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
   vec3 colour(1.0,0.0,0.0);
   vec4 d;
 
-  for(int y=0; y<screen->height; y++){
-    for(int x=0; x<screen->width; x++){
-      Intersection inter;
-      d.x = (x - screen->width/2);
-      d.y = (y - screen->height/2);
-      d.z = cam.focalLength;
+  if (ANTI_ALIASING_MODE){
+    for(int y=0; y<screen->height; y++){
+      for(int x=0; x<screen->width; x++){
+        vec3 neighbouringPixelColours[4];
+        int numberOfNeighbours = 0;
+        for(int n = 0; n < 4; n++){
+          neighbouringPixelColours[n] = vec3(0.0,0.0,0.0);
+          if(x + dirX[n] < screen->width && x + dirX[n] >= 0
+            && x + dirY[n] < screen->height && x + dirY[n] >= 0){
+              numberOfNeighbours++;
+              Intersection inter;
+              d.x = (x + dirX[n] - screen->width/2);
+              d.y = (y + dirY[n] - screen->height/2);
+              d.z = cam.focalLength;
+              if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
+                vec3 lightD = directLight(cam, triangles, inter, light);
+                neighbouringPixelColours[n] = triangles[inter.triangleIndex].color * lightD;
+              }
+            }
 
-      if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
-        vec3 lightD = directLight(cam, triangles, inter, light);
-        PutPixelSDL(screen, x, y, triangles[inter.triangleIndex].color * lightD);
+        }
+
+        Intersection inter;
+        d.x = (x - screen->width/2);
+        d.y = (y - screen->height/2);
+        d.z = cam.focalLength;
+
+        if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
+          vec3 lightD = directLight(cam, triangles, inter, light);
+          vec3 neighbouringSum = neighbouringPixelColours[0] + neighbouringPixelColours[1] + neighbouringPixelColours[2] + neighbouringPixelColours[3];
+          vec3 result = (neighbouringSum + triangles[inter.triangleIndex].color * lightD);
+          result.x /= (numberOfNeighbours + 1);
+          result.y /= (numberOfNeighbours + 1);
+          result.z /= (numberOfNeighbours + 1);
+          PutPixelSDL(screen, x, y, result);
+        }
+      }
+    }
+  }else{
+    for(int y=0; y<screen->height; y++){
+      for(int x=0; x<screen->width; x++){
+        Intersection inter;
+        d.x = (x - screen->width/2);
+        d.y = (y - screen->height/2);
+        d.z = cam.focalLength;
+
+        if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
+          vec3 lightD = directLight(cam, triangles, inter, light);
+          PutPixelSDL(screen, x, y, triangles[inter.triangleIndex].color * lightD);
+        }
       }
     }
   }
