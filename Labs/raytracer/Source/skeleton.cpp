@@ -1,91 +1,11 @@
 #include <iostream>
-#include <glm/glm.hpp>
-#include <SDL.h>
-#include "SDLauxiliary.h"
-#include "TestModelH.h"
 #include <stdint.h>
 #include <limits.h>
+#include "intersections.cpp"
 
-using namespace std;
-using glm::vec3;
-using glm::mat3;
-using glm::vec4;
-using glm::mat4;
+//Extensions: Kramer's rule,
 
-
-#define SCREEN_WIDTH 480
-#define SCREEN_HEIGHT 360
-#define FULLSCREEN_MODE false
-
-// struct Camera{
-//   float focalLength;
-//   vec4 cameraPos;
-// }
-
-struct Camera{
-  float focalLength;
-  vec4 cameraPos;
-  mat4 cameraRotation;
-  float yaw;
-};
-
-struct Intersection
-{
-  vec4 position;
-  float distance;
-  int triangleIndex;
-};
-
-struct Light{
-  vec4 lightPos;
-  vec3 lightColor;
-};
-
-vec3 indirectLight = 0.15f * vec3(1,1,1);
-/* ----------------------------------------------------------------------------*/
-
-
-/*
-
-TODO Points for triangles in 3D TODO
-
-Axes:
-  e1 = v1 - v0
-  e2 = v2 - v0
-
-Point r=(u, v) in triangle plane:
-  r = v0 + ue1 + ve2
-
-Points within triangle (and plane):
-  0 < u
-  0 < v
-  u + v < 1
-
-TODO Rays in 3D TODO
-start position s element of R4
-and direction d element of R4
-
-r = s + td
-
-t element of R = position on the line, signed distance
-
-0 <= t
-
-
-TODO Intersection TODO
-
-Intersection point x = A^(-1)b
-A = (-d  e1  e2)
-b = s - v0
-x = (t  u  v)^T
-
- */
-/* FUNCTIONS                                                                   */
-
-
-
-void Update(Camera& cam);
-void Draw(screen* screen);
+vec3 indirectLight = INDIRECT_LIGHT_FACTOR * vec3(1,1,1);
 
 void reset_camera(Camera &cam){
   cam.focalLength = SCREEN_WIDTH;
@@ -100,49 +20,22 @@ void reset_light(Light &light){
   light.lightColor = 14.0f * vec3(1, 1, 1);
 }
 
-bool ClosestIntersectionLight( vec4 start, vec4 dir,
-    const vector<Triangle>& triangles, Intersection inter){
-  bool okay = false;
-
-  for(unsigned int i = 0; i < triangles.size(); i++){
-    if((int) i == inter.triangleIndex)
-      continue;
-    Triangle triangle = triangles[i];
-    vec4 v0 = triangle.v0;
-    vec4 v1 = triangle.v1;
-    vec4 v2 = triangle.v2;
-    vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
-    vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
-    vec3 b = vec3(start.x-v0.x,start.y-v0.y,start.z-v0.z);
-    mat3 A( vec3(-dir), e1, e2 );
-    // EXTENSION
-    mat3 m = A;
-    m[0] = b;
-    float t = glm::determinant(m) / glm::determinant(A);
-    if(t > 0 && t < inter.distance){
-      vec3 x = glm::inverse( A ) * b;
-      if(x.y >= 0 && x.z >= 0 && (x.y + x.z <= 1)){
-        okay = true;
-        break;
-      }
-    }
-    // vec3 x = glm::inverse( A ) * b;
-  }
-
-  return okay;
-};
-
 vec3 directLight(Camera& cam, const vector<Triangle>& triangles, Intersection& inter, Light light){
   Intersection light_inter = inter;
   vec4 vecr = normalize(light.lightPos - inter.position);
   float r = glm::length(light.lightPos - inter.position);
-  vec3 d = (light.lightColor * max(dot(vecr, normalize(triangles[inter.triangleIndex].normal)), 0.f)) / (float)(4.f * 3.14159 * r * r);
+
+  vec3 d = (light.lightColor * max(dot(vecr, normalize(triangles[inter.triangleIndex].normal)), 0.f))
+           / 
+           (float)(4.f * 3.14159 * r * r);
+
   light_inter.distance = r;
   if(ClosestIntersectionLight(inter.position + vecr * 0.001f, vecr, triangles, light_inter)){
     d = vec3(0.f, 0.f, 0.f);
   }
   return d + indirectLight;
 }
+
 void rotateY(Camera& cam, float angle){
   vec4 v1(cos(angle), 0, -sin(angle), 0);
   vec4 v2(0,1,0,0);
@@ -152,45 +45,6 @@ void rotateY(Camera& cam, float angle){
   mat4 R(v1, v2, v3, v4);
   cam.cameraRotation = R;
 }
-
-
-bool ClosestIntersection( Camera& cam, vec4 dir,
-    const vector<Triangle>& triangles,
-    Intersection& closestIntersection ){
-
-  float minimumDistance = std::numeric_limits<float>::max();
-  bool okay = false;
-
-  for(unsigned int i = 0; i < triangles.size(); i++){
-    Triangle triangle = triangles[i];
-    vec4 v0 = triangle.v0;
-    vec4 v1 = triangle.v1;
-    vec4 v2 = triangle.v2;
-    vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
-    vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
-    vec3 b = vec3(cam.cameraPos.x-v0.x,cam.cameraPos.y-v0.y,cam.cameraPos.z-v0.z);
-    mat3 A( vec3(-dir), e1, e2 );
-    // EXTENSION
-    mat3 m = A;
-    m[0] = b;
-    float t = glm::determinant(m) / glm::determinant(A);
-    if(t > 0 && t < minimumDistance){
-      vec3 x = glm::inverse( A ) * b;
-      if(x.y >= 0 && x.z >= 0 && (x.y + x.z <= 1)){
-        minimumDistance = abs(x.x);
-        closestIntersection.position = v0 + x.y*vec4(e1.x, e1.y, e1.z, 0) + x.z*vec4(e2.x, e2.y, e2.z, 0);
-        closestIntersection.distance = abs(x.x);
-        closestIntersection.triangleIndex = i;
-        okay = true;
-      }
-    }
-    // vec3 x = glm::inverse( A ) * b;
-  }
-
-  return okay;
-};
-
-void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light);
 
 int main( int argc, char* argv[] )
 {
@@ -215,7 +69,7 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
-/*Place your drawing here*/
+
 void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light)
 {
   /* Clear buffer */
@@ -224,12 +78,6 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
   vec3 colour(1.0,0.0,0.0);
   vec4 d;
 
-  // for(int i=0; i<1000; i++)
-  //   {
-  //     uint32_t x = rand() % screen->width;
-  //     uint32_t y = rand() % screen->height;
-  //     PutPixelSDL(screen, x, y, colour);
-  //   }
   for(int y=0; y<screen->height; y++){
     for(int x=0; x<screen->width; x++){
       Intersection inter;
@@ -257,8 +105,8 @@ void Update(Camera &cam)
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
 
-  // SDL_Event e;
   const uint8_t *keyState = SDL_GetKeyboardState(NULL);
+
   if( keyState[SDL_SCANCODE_UP] ){
     cam.cameraPos += cam.cameraRotation * vec4(0, 0, 0.25f, 0);
   }
@@ -266,16 +114,12 @@ void Update(Camera &cam)
     cam.cameraPos -= cam.cameraRotation * vec4(0, 0, 0.25f, 0);
   }
   if( keyState[SDL_SCANCODE_LEFT] ){
-    // cameraPos.x -=0.25;
     cam.cameraPos -= cam.cameraRotation * vec4(0.25f, 0, 0, 0);
-    // cam.cameraPos.x -= 0.25;
-  // Move camera to the left
   }
   if( keyState[SDL_SCANCODE_RIGHT] ){
-    // cameraPos.x +=0.25;
     cam.cameraPos += cam.cameraRotation * vec4(0.25f, 0, 0, 0);
-  // Move camera to the right
   }
+
   if( keyState[SDL_SCANCODE_Q]){
     cam.yaw -= 0.04;
     rotateY(cam, cam.yaw);
