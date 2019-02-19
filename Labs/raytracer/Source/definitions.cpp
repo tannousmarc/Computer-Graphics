@@ -31,6 +31,8 @@ struct Light{
 #define SCREEN_WIDTH 1024
 #define SCREEN_HEIGHT 1024
 #define FULLSCREEN_MODE true
+
+#define SOFT_SHADOW_DISPLACEMENT 0
 #define ANTI_ALIASING_MODE true
 
 #define INDIRECT_LIGHT_FACTOR 0.25f

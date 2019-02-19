@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <stdlib.h>
-#include <time.h>  
+#include <time.h>
 #include <limits.h>
 #include "intersections.cpp"
 
@@ -75,6 +75,9 @@ int main( int argc, char* argv[] )
 float dirX[] = {-0.5, 0, 0.5, 0};
 float dirY[] = {0,  0.5, 0, -0.5};
 
+int offX[] = {1, 0, -1, 0};
+// int offY[] =
+
 void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light)
 {
   /* Clear buffer */
@@ -99,16 +102,25 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
               d.z = cam.focalLength;
               if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
                 vec3 lightD = directLight(cam, triangles, inter, light);
-                for(int i = -50; i < 50; i++){
+                // for(int i = -50; i < 50; i++){
+                //   Light newLight;
+                //   newLight.lightPos = vec4(light.lightPos.x + i * 0.001, light.lightPos.y, light.lightPos.z + i * 0.001, 1.0);
+                //   newLight.lightColor = light.lightColor;
+                //   lightD += directLight(cam, triangles, inter, newLight);
+                // }
+
+                for(int i = -SOFT_SHADOW_DISPLACEMENT/2; i < SOFT_SHADOW_DISPLACEMENT; i++){
+                  for(int j = -SOFT_SHADOW_DISPLACEMENT; j < SOFT_SHADOW_DISPLACEMENT; j++){
                   Light newLight;
-                  newLight.lightPos = vec4(light.lightPos.x + i * 0.001, light.lightPos.y, light.lightPos.z + i * 0.001, 1.0);
+                  newLight.lightPos = vec4(light.lightPos.x + i * 0.01, light.lightPos.y, light.lightPos.z + j * 0.01, 1.0);
                   newLight.lightColor = light.lightColor;
                   lightD += directLight(cam, triangles, inter, newLight);
+                  }
                 }
 
-                lightD.x /= 101;
-                lightD.y /= 101;
-                lightD.z /= 101;
+                lightD.x /= (SOFT_SHADOW_DISPLACEMENT * SOFT_SHADOW_DISPLACEMENT + 1);
+                lightD.y /= (SOFT_SHADOW_DISPLACEMENT * SOFT_SHADOW_DISPLACEMENT + 1);
+                lightD.z /= (SOFT_SHADOW_DISPLACEMENT * SOFT_SHADOW_DISPLACEMENT + 1);
                 neighbouringPixelColours[n] = triangles[inter.triangleIndex].color * lightD;
               }
             }
