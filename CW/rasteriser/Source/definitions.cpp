@@ -20,6 +20,12 @@ struct Camera{
   float xaw;
 };
 
+struct Pixel{
+  int x;
+  int y;
+  float zinv;
+};
+
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE true

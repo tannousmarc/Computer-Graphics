@@ -69,6 +69,71 @@ void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result){
    }
  }
 
+ void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels){
+   int largestY = -numeric_limits<int>::max(), smallestY = numeric_limits<int>::max();
+   for(int i = 0; i < vertexPixels.size(); i++){
+     if(vertexPixels[i].y > largestY){
+       largestY = vertexPixels[i].y;
+     }
+     if(vertexPixels[i].y < smallestY){
+       smallestY = vertexPixels[i].y;
+     }
+   }
+   int rows = largestY - smallestY + 1;
+   leftPixels.resize(rows);
+   rightPixels.resize(rows);
+   for(int i = 0; i < rows; i++){
+     leftPixels[i].x = numeric_limits<int>::max();
+     rightPixels[i].x = -numeric_limits<int>::max();
+   }
+
+   for(int i = 0; i < vertexPixels.size(); i++){
+     for(int j = i + 1; j < vertexPixels.size(); j++){
+       ivec2 delta = glm::abs(vertexPixels[i] - vertexPixels[j]);
+       int pixels = glm::max(delta.x, delta.y) + 1;
+       vector<ivec2> line(pixels);
+       Interpolate(vertexPixels[i], vertexPixels[j], line);
+       for(int k = 0; k < line.size(); k++){
+         
+         int row = line[k].y - smallestY;
+         //printf("Setting row: %d rows: %d \n", row, rows);
+         if(row >= 0){
+          if(line[k].x < leftPixels[row].x){
+            leftPixels[row].x = line[k].x;
+            leftPixels[row].y = line[k].y;
+          }
+          if(line[k].x > rightPixels[row].x){
+            rightPixels[row].x = line[k].x;
+            rightPixels[row].y = line[k].y;
+          }
+        }
+       }
+     }
+   }
+ }
+
+ void DrawPolygonRows(screen *screen, const vector<ivec2>& leftPixels, const vector<ivec2>& rightPixels, vec3 color){
+   for(int i = 0; i < leftPixels.size(); i++){
+     for(int j = leftPixels[i].x; j <= rightPixels[i].x; j++){
+       if(j > 0 && j < SCREEN_WIDTH && leftPixels[i].y > 0 && leftPixels[i].y < SCREEN_HEIGHT)
+        PutPixelSDL(screen, j, leftPixels[i].y, color);
+     }
+   }
+ }
+
+ void DrawPolygon(screen *screen, const vector<vec4>& vertices, Camera cam, vec3 color){
+   int V = vertices.size();
+
+   vector<ivec2> vertexPixels(V);
+   for(int i = 0; i < V; i++){
+     VertexShader(vertices[i], vertexPixels[i], cam);
+   }
+   vector<ivec2> leftPixels;
+   vector<ivec2> rightPixels;
+   ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
+   DrawPolygonRows(screen, leftPixels, rightPixels, color);
+ }
+
 int main( int argc, char* argv[] )
 {
   
@@ -100,25 +165,27 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam)
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   
   vec3 colour(1.0,0.0,0.0);
+
+
   for(uint32_t i = 0; i < triangles.size(); i++){
     vector<vec4> vertices(3);
     vertices[0] = triangles[i].v0;
     vertices[1] = triangles[i].v1;
     vertices[2] = triangles[i].v2;
-    DrawPolygonEdges(vertices, cam, screen);
+    DrawPolygon(screen, vertices, cam, triangles[i].color);
   }
 }
 
 /*Place updates of parameters here*/
 void Update(Camera &cam)
 {
-  // static int t = SDL_GetTicks();
-  // /* Compute frame time */
-  // int t2 = SDL_GetTicks();
-  // float dt = float(t2-t);
-  // t = t2;
-  // /*Good idea to remove this*/
-  // std::cout << "Render time: " << dt << " ms." << std::endl;
+  static int t = SDL_GetTicks();
+  /* Compute frame time */
+  int t2 = SDL_GetTicks();
+  float dt = float(t2-t);
+  t = t2;
+  /*Good idea to remove this*/
+  std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
 
   const uint8_t *keyState = SDL_GetKeyboardState(NULL);
