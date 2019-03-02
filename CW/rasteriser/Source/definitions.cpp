@@ -15,23 +15,36 @@ using glm::ivec2;
 struct Camera{
   float focalLength;
   vec4 cameraPos;
-  mat4 cameraRotation;
+  mat4 cameraRotationX, cameraRotationY, cameraRotationZ;
   float yaw;
-  float xaw;
+  float pitch;
 };
 
 struct Pixel{
   int x;
   int y;
   float zinv;
+  vec3 pos3d;
+};
+
+struct Vertex{
+  vec4 position;
+  vec4 normal;
+  vec2 reflectance;
+};
+
+struct Light{
+  vec3 lightPos;
+  vec3 lightPower;
+  vec3 indirectLightPowerPerArea;
 };
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE true
 
-void Update(Camera &cam);
-void Draw(screen* screen, vector<Triangle>& triangles, Camera cam);
+void Update(Camera &cam, Light &light);
+void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light);
 
 // struct Intersection
 // {
