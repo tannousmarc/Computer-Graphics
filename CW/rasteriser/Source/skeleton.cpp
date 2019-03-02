@@ -32,89 +32,76 @@ void VertexShader(const vec4& v, Pixel& p, Camera cam){
   vec4 vNew = (v - cam.cameraPos) * cam.cameraRotation;
   p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
   p.y = (int) ((cam.focalLength * vNew.y / vNew.z) + (SCREEN_HEIGHT / 2));
-  p.zinv = 1 / (glm::distance(cam.cameraPos, v));
+  p.zinv = (float) (1.0f / vNew.z);
 }
 
 void Interpolate(Pixel a, Pixel b, vector<Pixel>& result){
   int N = result.size();
+
+  float stepZ= (b.zinv - a.zinv) / float(max(N - 1, 1));
+  float stepX = (b.x - a.x) / float(max(N - 1, 1));
+  float stepY = (b.y - a.y) / float(max(N - 1, 1));
+
+  for (int i = 0; i < result.size(); i++) {
+    result[i].x = glm::round(a.x + stepX * i);
+    result[i].y = glm::round(a.y + stepY * i);
+    result[i].zinv = a.zinv + stepZ * i;
+  }
+}
+void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
   ivec2 ai = ivec2(a.x, a.y);
   ivec2 bi = ivec2(b.x, b.y);
-  vec2 step = vec2(bi - ai) / float(max(N - 1, 1));
-  float stepz = (b.zinv - a.zinv) / float(max(N - 1, 1));
-  vec2 current(ai);
-  float currentInvZ = a.zinv;
-  for(int i = 0; i < N; i++){
-    result[i].x = current.x;
-    result[i].y = current.y;
-    result[i].zinv = currentInvZ;
-    current += step;
-    currentInvZ += stepz;
-  }
+  ivec2 delta = glm::abs(ai - bi);
+  int pixels = glm::max(delta.x, delta.y) + 1;
+
+  line.resize(pixels);
+  Interpolate(a, b, line);
 }
 
  void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels){
-   int largestY = -numeric_limits<int>::max(), smallestY = numeric_limits<int>::max();
-   for(int i = 0; i < vertexPixels.size(); i++){
-     if(vertexPixels[i].y > largestY){
-       largestY = vertexPixels[i].y;
-     }
-     if(vertexPixels[i].y < smallestY){
-       smallestY = vertexPixels[i].y;
-     }
+   int yMin = vertexPixels[0].y;
+   int yMax = vertexPixels[0].y;
+   for (auto vertexPixel : vertexPixels){
+     if (vertexPixel.y < yMin)
+       yMin = vertexPixel.y;
+     else if (vertexPixel.y > yMax)
+       yMax = vertexPixel.y;
    }
-   int rows = largestY - smallestY + 1;
+   int rows = yMax - yMin + 1;
+
    leftPixels.resize(rows);
    rightPixels.resize(rows);
-   for(int i = 0; i < rows; i++){
-     leftPixels[i].x = numeric_limits<int>::max();
+
+   for (int i = 0; i < rows; i++){
+     leftPixels[i].x = +numeric_limits<int>::max();
      rightPixels[i].x = -numeric_limits<int>::max();
    }
 
-   for(int i = 0; i < vertexPixels.size(); i++){
-     for(int j = i + 1; j < vertexPixels.size(); j++){
-       ivec2 ii = ivec2(vertexPixels[i].x, vertexPixels[i].y);
-       ivec2 ij = ivec2(vertexPixels[j].x, vertexPixels[j].y);
-       ivec2 delta = glm::abs(ii - ij);
-       int pixels = glm::max(delta.x, delta.y) + 1;
-       vector<Pixel> line(pixels);
-       Interpolate(vertexPixels[i], vertexPixels[j], line);
-       for(int k = 0; k < line.size(); k++){
-         
-         int row = line[k].y - smallestY;
-         //printf("Setting row: %d rows: %d \n", row, rows);
-         if(row >= 0){
-          if(line[k].x < leftPixels[row].x){
-            leftPixels[row].x = line[k].x;
-            leftPixels[row].y = line[k].y;
-            leftPixels[row].zinv = line[k].zinv;
-          }
-          if(line[k].x > rightPixels[row].x){
-            rightPixels[row].x = line[k].x;
-            rightPixels[row].y = line[k].y;
-            leftPixels[row].zinv = line[k].zinv;
-          }
-        }
-       }
+   vector< vector<Pixel> > lines(3);
+   for(int i = 0; i < 3; i++){
+     interpolateLine(vertexPixels[i], vertexPixels[(i+1)%3], lines[i]);
+   }
+
+   for (auto line : lines){
+     for (auto pixel : line){
+       if (pixel.x < leftPixels[pixel.y - yMin].x)
+         leftPixels[pixel.y - yMin] = pixel;
+       if (pixel.x > rightPixels[pixel.y - yMin].x)
+         rightPixels[pixel.y - yMin] = pixel;
      }
    }
  }
 
  void DrawPolygonRows(screen *screen, const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH] ){
    for(int i = 0; i < leftPixels.size(); i++){
-     ivec2 ii = ivec2(leftPixels[i].x, leftPixels[i].y);
-     ivec2 ij = ivec2(rightPixels[i].x, rightPixels[i].y);
-     ivec2 delta = glm::abs(ii - ij);
-     int pixels = glm::max(delta.x, delta.y) + 1;
-     vector<Pixel> zinvs(pixels);
-     Interpolate(leftPixels[i], rightPixels[i], zinvs);
-     int current = 0;
-     for(int j = leftPixels[i].x; j <= rightPixels[i].x; j++){
-       if(j > 0 && j < SCREEN_WIDTH && leftPixels[i].y > 0 && leftPixels[i].y < SCREEN_HEIGHT &&
-          zinvs[current].zinv > depthBuffer[leftPixels[i].y][j]){
-        PutPixelSDL(screen, j, leftPixels[i].y, color);
-        depthBuffer[leftPixels[i].y][j] = zinvs[current].zinv;
+     vector<Pixel> line(rightPixels[i].x - leftPixels[i].x + 1);
+     Interpolate(leftPixels[i], rightPixels[i], line);
+     for(auto pixel : line){
+       if(pixel.x > 0 && pixel.x < SCREEN_WIDTH && pixel.y > 0 && pixel.y < SCREEN_HEIGHT
+       && pixel.zinv > depthBuffer[pixel.y][pixel.x]){
+         depthBuffer[pixel.y][pixel.x] = pixel.zinv;
+         PutPixelSDL(screen, pixel.x, pixel.y, color);
        }
-       current++;
      }
    }
  }
@@ -142,6 +129,7 @@ int main( int argc, char* argv[] )
   LoadTestModel(triangles);
   Camera cam;
   reset_camera(cam);
+
   while (NoQuitMessageSDL())
     {
       Update(cam);
@@ -180,14 +168,14 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam)
 /*Place updates of parameters here*/
 void Update(Camera &cam)
 {
-  static int t = SDL_GetTicks();
-  /* Compute frame time */
-  int t2 = SDL_GetTicks();
-  float dt = float(t2-t);
-  t = t2;
-  /*Good idea to remove this*/
-  std::cout << "Render time: " << dt << " ms." << std::endl;
-  /* Update variables*/
+  // static int t = SDL_GetTicks();
+  // /* Compute frame time */
+  // int t2 = SDL_GetTicks();
+  // float dt = float(t2-t);
+  // t = t2;
+  // /*Good idea to remove this*/
+  // //std::cout << "Render time: " << dt << " ms." << std::endl;
+  // /* Update variables*/
 
   const uint8_t *keyState = SDL_GetKeyboardState(NULL);
   int lastRecordedX = 0;
