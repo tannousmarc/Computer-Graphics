@@ -1,6 +1,6 @@
 #include <iostream>
 #include <glm/glm.hpp>
-#include "definitions.cpp"
+#include "parser.cpp"
 #include <stdint.h>
 
 SDL_Event event;
@@ -151,6 +151,98 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
    DrawPolygonRows(screen, leftPixels, rightPixels, color, depthBuffer, light, normal, reflectance);
  }
 
+void GenerateShadowMap(const vector<Vertex>& vertices, Camera cam, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]){
+  
+}
+
+void normaliseTriangles(vector<Triangle>& rawTriangles, float scale = 1, 
+                        float displacementX = 0, float displacementY = 0, float displacementZ = 0, 
+                        float rotateX = 0, float rotateY = 0, float rotateZ = 0,
+                        float adjustNormalX = 1, float adjustNormalY = 1, float adjustNormalZ = 1){
+  float L = -numeric_limits<int>::max();
+  for(auto triangle : rawTriangles){
+    if(glm::abs(triangle.v0.x) > L){
+      L = glm::abs(triangle.v0.x);
+    }
+    if(glm::abs(triangle.v0.y) > L){
+      L = glm::abs(triangle.v0.y);
+    }
+    if(glm::abs(triangle.v0.z) > L){
+      L = glm::abs(triangle.v0.z);
+    }
+
+    if(glm::abs(triangle.v1.x) > L){
+      L = glm::abs(triangle.v1.x);
+    }
+    if(glm::abs(triangle.v1.y) > L){
+      L = glm::abs(triangle.v1.y);
+    }
+    if(glm::abs(triangle.v1.z) > L){
+      L = glm::abs(triangle.v1.z);
+    }
+
+    if(glm::abs(triangle.v2.x) > L){
+      L = glm::abs(triangle.v2.x);
+    }
+    if(glm::abs(triangle.v2.y) > L){
+      L = glm::abs(triangle.v2.y);
+    }
+    if(glm::abs(triangle.v2.z) > L){
+      L = glm::abs(triangle.v2.z);
+    }
+  }
+
+
+  vec4 v1(1, 0, 0, 0);
+  vec4 v2(0, cos(rotateX), sin(rotateX),0);
+  vec4 v3(0, -sin(rotateX), cos(rotateX), 0);
+  vec4 v4(0, 0, 0, 1);
+
+  mat4 Rx(v1, v2, v3, v4);
+
+  vec4 v5(cos(rotateY), 0, -sin(rotateY), 0);
+  vec4 v6(0,1,0,0);
+  vec4 v7(sin(rotateY), 0, cos(rotateY), 0);
+  vec4 v8(0, 0, 0, 1);
+
+  mat4 Ry(v5, v6, v7, v8);
+
+  vec4 v9(cos(rotateZ), sin(rotateZ), 0, 0);
+  vec4 v10(-sin(rotateZ),cos(rotateZ),0,0);
+  vec4 v11(0, 0, 1, 0);
+  vec4 v12(0, 0, 0, 1);
+
+  mat4 Rz(v9, v10, v11, v12);
+  mat4 rotationMatrix = Rx * Ry * Rz;
+
+  for(auto &triangle : rawTriangles){
+    triangle.v0 /= scale * L;
+		triangle.v1 /= scale * L;
+		triangle.v2 /= scale * L;
+
+		triangle.v0 += vec4(displacementX, displacementY, displacementZ,0);
+		triangle.v1 += vec4(displacementX, displacementY, displacementZ,0);
+    triangle.v2 += vec4(displacementX, displacementY, displacementZ,0);
+
+		
+		triangle.v0 = rotationMatrix * triangle.v0;
+    triangle.v1 = rotationMatrix * triangle.v1;
+    triangle.v2 = rotationMatrix * triangle.v2;
+		// triangle.v2.x *= -1;
+
+		// triangle.v0.y *= -1;
+		// triangle.v1.y *= -1;
+		// triangle.v2.y *= -1;
+    if(!triangle.normal.x){
+		  triangle.ComputeNormal();
+    }
+    triangle.normal.x = adjustNormalX * triangle.normal.x;
+    triangle.normal.y = adjustNormalY * triangle.normal.y;
+    triangle.normal.z = adjustNormalZ * triangle.normal.z;
+    triangle.normal = rotationMatrix * triangle.normal;
+  }
+}
+
 int main( int argc, char* argv[] )
 {
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
@@ -159,6 +251,24 @@ int main( int argc, char* argv[] )
 
   vector<Triangle> triangles;
   LoadTestModel(triangles);
+
+  vector<Triangle> teapotTriangles;
+  LoadObject("teapot.obj", teapotTriangles);
+  normaliseTriangles(teapotTriangles,
+                     2, 
+                     0.3, -0.2, 0.3,
+                     3.14, 0, 0,
+                     -1, -1, -1);
+  triangles.insert( triangles.end(), teapotTriangles.begin(), teapotTriangles.end() );
+
+  vector<Triangle> ursacheTriangles;
+  LoadObject("ursache.obj", ursacheTriangles);
+  normaliseTriangles(ursacheTriangles,
+                     4, 
+                     -0.35, -0.75, 0.40,
+                     3.14, 0.3, 0,
+                     -1 , 1, 1);
+  triangles.insert( triangles.end(), ursacheTriangles.begin(), ursacheTriangles.end() );
   Camera cam;
   reset_camera(cam);
 
@@ -183,12 +293,17 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+  float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH];
   for(int y = 0; y < SCREEN_HEIGHT; y++){
     for(int x = 0; x < SCREEN_WIDTH; x++){
       depthBuffer[y][x] = 0.0f;
+      shadowMap[y][x] = 0.0f;
     }
   }
 
+  Camera lightPOVCam;
+  reset_camera(lightPOVCam);
+  lightPOVCam.cameraPos = vec4(light.lightPos.x, light.lightPos.y, light.lightPos.z, 1);
 
   for(uint32_t i = 0; i < triangles.size(); i++){
     vec4 currentNormal = triangles[i].normal;
@@ -199,7 +314,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
     vertices[1].position = triangles[i].v1;
     vertices[2].position = triangles[i].v2;
 
-
+    GenerateShadowMap(vertices, lightPOVCam, shadowMap);
     DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, light, currentNormal, currentReflectance);
   }
 }

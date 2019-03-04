@@ -28,8 +28,8 @@ struct Light{
   vec3 lightColor;
 };
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 320
+#define SCREEN_WIDTH 1024
+#define SCREEN_HEIGHT 1024
 #define FULLSCREEN_MODE true
 
 #define SOFT_SHADOW_DISPLACEMENT 0

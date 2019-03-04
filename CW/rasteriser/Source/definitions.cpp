@@ -40,7 +40,7 @@ struct Light{
 };
 
 #define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define SCREEN_HEIGHT 640
 #define FULLSCREEN_MODE true
 
 void Update(Camera &cam, Light &light);
