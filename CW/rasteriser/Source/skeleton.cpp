@@ -258,7 +258,7 @@ int main( int argc, char* argv[] )
                      2, 
                      0.3, -0.2, 0.3,
                      3.14, 0, 0,
-                     -1, -1, -1);
+                     1, -1, -1);
   triangles.insert( triangles.end(), teapotTriangles.begin(), teapotTriangles.end() );
 
   vector<Triangle> ursacheTriangles;
