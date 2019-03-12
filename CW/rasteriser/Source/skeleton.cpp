@@ -2,7 +2,10 @@
 #include <glm/glm.hpp>
 #include "utils.cpp"
 #include <stdint.h>
+#include <omp.h>
 
+
+// OMP_NUM_THREADS
 void VertexShader(const Vertex& v, Pixel& p, Camera cam){
   vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY * cam.cameraRotationZ);
   p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
@@ -20,7 +23,8 @@ void PixelShader(const Pixel& p, vec3 color, screen* screen, float depthBuffer[S
     * max(dot(normalize(lightDistance), normalize(newNormal)),0.0f)) / pirdoi;
 
   vec3 illumination = reflectance * (directIllumination + light.indirectLightPowerPerArea);
-
+  // vec3 illcolor = illumination * color;
+  // cout << "SHADES A PIXEL " << illcolor.x << " " << illcolor.y << " " << illcolor.z << endl;
   if(p.zinv > depthBuffer[p.y][p.x]){
     depthBuffer[p.y][p.x] = p.zinv;
     PutPixelSDL(screen, p.x, p.y, illumination * color);
@@ -101,14 +105,67 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
  void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance){
    int V = vertices.size();
 
+  //  cout << "ENTERS DRAW POLYGON " << endl;
+
    vector<Pixel> vertexPixels(V);
    for(int i = 0; i < V; i++){
      VertexShader(vertices[i], vertexPixels[i], cam);
    }
    vector<Pixel> leftPixels;
    vector<Pixel> rightPixels;
-   ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
-   DrawPolygonRows(screen, leftPixels, rightPixels, color, depthBuffer, light, normal, reflectance);
+
+   // max min x max min y din vertexPixels
+   // 
+   int maxX = -numeric_limits<int>::max(); 
+   int minX = numeric_limits<int>::max();;
+   int maxY = -numeric_limits<int>::max();
+   int minY = numeric_limits<int>::max();;
+   
+   for(int i = 0; i < vertexPixels.size(); i++){
+     maxX = std::max(maxX, vertexPixels[i].x);
+     maxY = std::max(maxY, vertexPixels[i].y);
+     minX = std::min(minX, vertexPixels[i].x);
+     minY = std::min(minY, vertexPixels[i].y);
+   }
+
+   
+  //  cout << "maxX: " << maxX << " maxY: " << maxY << " minX: " << minX << " minY: "<< minY<<endl;
+   for(int y = minY; y < maxY; y++){
+     if(y >= SCREEN_HEIGHT || y < 0)
+      continue;
+     for(int x = minX; x < maxX; x++){
+       if(x < 0 || x >= SCREEN_WIDTH)
+        continue;
+       glm::vec2 v0(vertexPixels[1].x - vertexPixels[0].x, vertexPixels[1].y - vertexPixels[0].y);
+       glm::vec2 v1(vertexPixels[2].x - vertexPixels[0].x, vertexPixels[2].y - vertexPixels[0].y);
+       glm::vec2 v2(x - vertexPixels[0].x, y - vertexPixels[0].y);
+       
+       Pixel tPixel;
+       tPixel.x = x;
+       tPixel.y = y;
+
+       float dot00 = glm::dot(v0, v0);
+       float dot01 = glm::dot(v0, v1);
+       float dot11 = glm::dot(v1, v1);
+       float dot20 = glm::dot(v2, v0);
+       float dot21 = glm::dot(v2, v1);
+
+       float denom = dot00 * dot11 - dot01 * dot01;
+       float a = (dot11 * dot20 - dot01 * dot21) / denom; // v1
+       float b = (dot00 * dot21 - dot01 * dot20) / denom; // v2
+       float c = 1.0f - a - b; // v0
+      //  cout << "a: " << a << " b: " << b << " c: " << c << endl;
+       if (0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1){
+        // cout << "PASSES THE IF STATEMENT" << endl;
+        tPixel.zinv = vertexPixels[1].zinv*a + vertexPixels[2].zinv*b + vertexPixels[0].zinv*c;
+        tPixel.pos3d = (vertexPixels[1].pos3d * vertexPixels[1].zinv*a + vertexPixels[2].pos3d * vertexPixels[2].zinv*b + vertexPixels[0].pos3d * vertexPixels[0].zinv*c) / tPixel.zinv;
+        PixelShader(tPixel, color, screen, depthBuffer, light, normal, reflectance);
+       }
+     }
+   }
+
+  //  ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
+  //  DrawPolygonRows(screen, leftPixels, rightPixels, color, depthBuffer, light, normal, reflectance);
  }
 
 void GenerateShadowMap(const vector<Vertex>& vertices, Camera cam, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]){
@@ -180,6 +237,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
   reset_camera(lightPOVCam);
   lightPOVCam.cameraPos = vec4(light.lightPos.x, light.lightPos.y, light.lightPos.z, 1);
 
+  #pragma omp parallel for
   for(uint32_t i = 0; i < triangles.size(); i++){
     vec4 currentNormal = triangles[i].normal;
     vec3 currentReflectance(1,1,1);
@@ -197,13 +255,13 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
 /*Place updates of parameters here*/
 void Update(Camera &cam, Light &light)
 {
-  // static int t = SDL_GetTicks();
+  static int t = SDL_GetTicks();
   // /* Compute frame time */
-  // int t2 = SDL_GetTicks();
-  // float dt = float(t2-t);
-  // t = t2;
+  int t2 = SDL_GetTicks();
+  float dt = float(t2-t);
+  t = t2;
   // /*Good idea to remove this*/
-  // //std::cout << "Render time: " << dt << " ms." << std::endl;
+  cout << "Render time: " << dt << " ms." << endl;
   // /* Update variables*/
 
   const uint8_t *keyState = SDL_GetKeyboardState(NULL);
