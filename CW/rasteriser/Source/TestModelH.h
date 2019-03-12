@@ -13,14 +13,14 @@ public:
 	glm::vec4 v0;
 	glm::vec4 v1;
 	glm::vec4 v2;
-	glm::vec4 uv0;
-	glm::vec4 uv1;
-	glm::vec4 uv2;
+	glm::vec2 uv0;
+	glm::vec2 uv1;
+	glm::vec2 uv2;
 	glm::vec3 color;
 	glm::vec4 normal;
-	int hasTexture;
+	bool hasTexture;
 
-	void set_uvs(glm::vec4 uvzero, glm::vec4 uvone, glm::vec4 uvtwo){
+	void set_uvs(glm::vec2 uvzero, glm::vec2 uvone, glm::vec2 uvtwo){
 		uv0 = uvzero;
 		uv1 = uvone;
 		uv2 = uvtwo;

@@ -3,7 +3,7 @@
 #include "utils.cpp"
 #include <stdint.h>
 // #include <omp.h>
-
+SDL_Surface *textureSurface;
 
 // OMP_NUM_THREADS
 void VertexShader(const Vertex& v, Pixel& p, Camera cam){
@@ -12,7 +12,8 @@ void VertexShader(const Vertex& v, Pixel& p, Camera cam){
   p.y = (int) ((cam.focalLength * vNew.y / vNew.z) + (SCREEN_HEIGHT / 2));
   p.zinv = (float) (1.0f / vNew.z);
   p.pos3d = vec3(v.position.x, v.position.y, v.position.z);
-
+  p.textureX = v.texturePosition.x;
+  p.textureY = v.texturePosition.y;
 }
 
 void PixelShader(const Pixel& p, vec3 color, screen* screen, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance){
@@ -23,8 +24,7 @@ void PixelShader(const Pixel& p, vec3 color, screen* screen, float depthBuffer[S
     * max(dot(normalize(lightDistance), normalize(newNormal)),0.0f)) / pirdoi;
 
   vec3 illumination = reflectance * (directIllumination + light.indirectLightPowerPerArea);
-  // vec3 illcolor = illumination * color;
-  // cout << "SHADES A PIXEL " << illcolor.x << " " << illcolor.y << " " << illcolor.z << endl;
+
   if(p.zinv > depthBuffer[p.y][p.x]){
     depthBuffer[p.y][p.x] = p.zinv;
     PutPixelSDL(screen, p.x, p.y, illumination * color);
@@ -90,23 +90,20 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
    }
  }
 
- void DrawPolygonRows(screen *screen, const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance ){
-   for(int i = 0; i < leftPixels.size(); i++){
-     vector<Pixel> line(rightPixels[i].x - leftPixels[i].x + 1);
-     Interpolate(leftPixels[i], rightPixels[i], line);
-     for(auto pixel : line){
-       if(pixel.x > 0 && pixel.x < SCREEN_WIDTH && pixel.y > 0 && pixel.y < SCREEN_HEIGHT){
-         PixelShader((Pixel) pixel, color, screen, depthBuffer, light, normal, reflectance);
-       }
-     }
-   }
- }
+//  void DrawPolygonRows(screen *screen, const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance ){
+//    for(int i = 0; i < leftPixels.size(); i++){
+//      vector<Pixel> line(rightPixels[i].x - leftPixels[i].x + 1);
+//      Interpolate(leftPixels[i], rightPixels[i], line);
+//      for(auto pixel : line){
+//        if(pixel.x > 0 && pixel.x < SCREEN_WIDTH && pixel.y > 0 && pixel.y < SCREEN_HEIGHT){
+//          PixelShader((Pixel) pixel, color, screen, depthBuffer, light, normal, reflectance);
+//        }
+//      }
+//    }
+//  }
 
- void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance){
+ void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance, bool hasTexture){
    int V = vertices.size();
-
-  //  cout << "ENTERS DRAW POLYGON " << endl;
-
    vector<Pixel> vertexPixels(V);
    for(int i = 0; i < V; i++){
      VertexShader(vertices[i], vertexPixels[i], cam);
@@ -114,8 +111,6 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
    vector<Pixel> leftPixels;
    vector<Pixel> rightPixels;
 
-   // max min x max min y din vertexPixels
-   // 
    int maxX = -numeric_limits<int>::max(); 
    int minX = numeric_limits<int>::max();;
    int maxY = -numeric_limits<int>::max();
@@ -128,8 +123,6 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
      minY = std::min(minY, vertexPixels[i].y);
    }
 
-   
-  //  cout << "maxX: " << maxX << " maxY: " << maxY << " minX: " << minX << " minY: "<< minY<<endl;
    for(int y = minY; y < maxY; y++){
      if(y >= SCREEN_HEIGHT || y < 0)
       continue;
@@ -156,11 +149,16 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
        float a = (dot11 * dot20 - dot01 * dot21) / denom; // v1
        float b = (dot00 * dot21 - dot01 * dot20) / denom; // v2
        float c = 1.0f - a - b; // v0
-      //  cout << "a: " << a << " b: " << b << " c: " << c << endl;
        if (0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1){
-        // cout << "PASSES THE IF STATEMENT" << endl;
         tPixel.zinv = vertexPixels[1].zinv*a + vertexPixels[2].zinv*b + vertexPixels[0].zinv*c;
         tPixel.pos3d = (vertexPixels[1].pos3d * vertexPixels[1].zinv*a + vertexPixels[2].pos3d * vertexPixels[2].zinv*b + vertexPixels[0].pos3d * vertexPixels[0].zinv*c) / tPixel.zinv;
+        if(hasTexture){
+          color = (
+                    (getTextureAt(textureSurface, vertexPixels[0].textureX + v0.x, vertexPixels[0].textureY + v0.y) * a) +
+                    (getTextureAt(textureSurface, vertexPixels[1].textureX + v1.x, vertexPixels[1].textureY + v1.y) * b) +
+                    (getTextureAt(textureSurface, vertexPixels[2].textureX + v2.x, vertexPixels[2].textureY + v2.y) * c)
+                  );
+        }
         PixelShader(tPixel, color, screen, depthBuffer, light, normal, reflectance);
        }
      }
@@ -177,23 +175,30 @@ void GenerateShadowMap(const vector<Vertex>& vertices, Camera cam, float depthBu
 int main( int argc, char* argv[] )
 {
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-  //SDL_ShowCursor(SDL_DISABLE);
   SDL_SetRelativeMouseMode(SDL_TRUE);
 
-  SDL_Surface *textureSurface = SDL_LoadBMP("Textures/sah.bmp");
+  textureSurface = SDL_LoadBMP("Textures/sah.bmp");
 
   vector<Triangle> triangles;
   LoadTestModel(triangles);
-  
-  // vector<Triangle> mooTriangles;
-  // LoadObject("moo.obj", mooTriangles);
-  // normaliseTriangles(mooTriangles,
-  //                    2.5, 
-  //                    0.6, -0.15, -0.2,
-  //                    3.14, -1.2, 0,
-  //                    -1, 1, 1);
-  // triangles.insert( triangles.end(), mooTriangles.begin(), mooTriangles.end() );
-  // mooTriangles.clear();
+  int sceneCount = triangles.size();
+  for(int i = 0; i < sceneCount; i++){
+    triangles[i].hasTexture = false;
+  }
+  vector<Triangle> mooTriangles;
+  LoadObject("moo.obj", mooTriangles);
+  normaliseTriangles(mooTriangles,
+                     2.5, 
+                     0.6, -0.15, -0.2,
+                     3.14, -1.2, 0,
+                     -1, 1, 1);
+  triangles.insert( triangles.end(), mooTriangles.begin(), mooTriangles.end() );
+  int mooCount = triangles.size();
+  for(int i = sceneCount; i < mooCount; i++){
+    triangles[i].hasTexture = true;
+    triangles[i].set_uvs(vec2(0,0), vec2(500, 0), vec2(0, 350));
+  }
+  mooTriangles.clear();
   // vector<Triangle> ursacheTriangles;
   // LoadObject("ursache.obj", ursacheTriangles);
   // normaliseTriangles(ursacheTriangles,
@@ -221,10 +226,8 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
-/*Place your drawing here*/
 void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
 {
-  /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
   float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -249,22 +252,25 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
     vertices[1].position = triangles[i].v1;
     vertices[2].position = triangles[i].v2;
 
+    vertices[0].texturePosition = triangles[i].uv0;
+    vertices[1].texturePosition = triangles[i].uv1;
+    vertices[1].texturePosition = triangles[i].uv2;
+
     GenerateShadowMap(vertices, lightPOVCam, shadowMap);
-    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, light, currentNormal, currentReflectance);
+    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, light, currentNormal, currentReflectance, triangles[i].hasTexture);
   }
 }
 
-/*Place updates of parameters here*/
 void Update(Camera &cam, Light &light)
 {
-  static int t = SDL_GetTicks();
-  // /* Compute frame time */
-  int t2 = SDL_GetTicks();
-  float dt = float(t2-t);
-  t = t2;
-  // /*Good idea to remove this*/
-  cout << "Render time: " << dt << " ms." << endl;
-  // /* Update variables*/
+  // static int t = SDL_GetTicks();
+  // // /* Compute frame time */
+  // int t2 = SDL_GetTicks();
+  // float dt = float(t2-t);
+  // t = t2;
+
+  // cout << "FPS: " << 1000 / dt << endl;
+  // // /* Update variables*/
 
   const uint8_t *keyState = SDL_GetKeyboardState(NULL);
   int lastRecordedX = 0;

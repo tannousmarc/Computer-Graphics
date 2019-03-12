@@ -33,6 +33,7 @@ struct Vertex{
   vec4 position;
   vec4 normal;
   vec2 reflectance;
+  vec2 texturePosition;
 };
 
 struct Light{
