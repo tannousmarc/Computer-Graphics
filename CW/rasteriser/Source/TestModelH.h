@@ -13,8 +13,18 @@ public:
 	glm::vec4 v0;
 	glm::vec4 v1;
 	glm::vec4 v2;
+	glm::vec4 uv0;
+	glm::vec4 uv1;
+	glm::vec4 uv2;
 	glm::vec3 color;
 	glm::vec4 normal;
+	int hasTexture;
+
+	void set_uvs(glm::vec4 uvzero, glm::vec4 uvone, glm::vec4 uvtwo){
+		uv0 = uvzero;
+		uv1 = uvone;
+		uv2 = uvtwo;
+	}
 
 	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, bool datDeMine = 0 )
 		: v0(v0), v1(v1), v2(v2), color(color)

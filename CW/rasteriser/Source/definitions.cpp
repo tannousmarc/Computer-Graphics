@@ -25,6 +25,8 @@ struct Pixel{
   int y;
   float zinv;
   vec3 pos3d;
+  int textureX;
+  int textureY;
 };
 
 struct Vertex{
@@ -39,7 +41,7 @@ struct Light{
   vec3 indirectLightPowerPerArea;
 };
 
-#define SCREEN_WIDTH 640
+#define SCREEN_WIDTH 1024
 #define SCREEN_HEIGHT 640
 #define FULLSCREEN_MODE true
 
