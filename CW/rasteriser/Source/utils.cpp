@@ -132,7 +132,7 @@ void normaliseTriangles(vector<Triangle>& rawTriangles, float scale = 1,
 vec3 getTextureAt(SDL_Surface *surface, int x, int y)
 {
   int bytes_per_pixel = surface->format->BytesPerPixel;
-  Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bytes_per_pixel;
+  Uint8 *p = (Uint8 *)surface->pixels + (y % surface->h) * surface->pitch + (x % surface->w) * bytes_per_pixel;
 
   Uint32 sdl_pixel_value;
   vec3 pixel_value;

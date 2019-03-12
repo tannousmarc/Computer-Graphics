@@ -178,8 +178,15 @@ int main( int argc, char* argv[] )
   SDL_SetRelativeMouseMode(SDL_TRUE);
 
   textureSurface = SDL_LoadBMP("Textures/sah.bmp");
-
   vector<Triangle> triangles;
+
+  srand(time(NULL));
+  // vec2 firstVec(rand() % 256, rand()%256);
+  // vec2 secondVec(rand() % 256, rand()%256);
+  // vec2 thirdVec(rand() % 256, rand()%256);
+  vec2 firstVec(0, 0);
+  vec2 secondVec(500, 0);
+  vec2 thirdVec(0, 500);
   LoadTestModel(triangles);
   int sceneCount = triangles.size();
   for(int i = 0; i < sceneCount; i++){
@@ -196,7 +203,7 @@ int main( int argc, char* argv[] )
   int mooCount = triangles.size();
   for(int i = sceneCount; i < mooCount; i++){
     triangles[i].hasTexture = true;
-    triangles[i].set_uvs(vec2(0,0), vec2(500, 0), vec2(0, 350));
+    triangles[i].set_uvs(firstVec, secondVec, thirdVec);
   }
   mooTriangles.clear();
   // vector<Triangle> ursacheTriangles;
