@@ -7,6 +7,7 @@
 void LoadObject(const char* file, std::vector<Triangle>& triangles)
 {
     char path[512];
+    path[0] = '\0';
     strcat(path, "Objects/");
     strcat(path, file);
     
@@ -78,7 +79,6 @@ void LoadObject(const char* file, std::vector<Triangle>& triangles)
             }
         }
     }
-
 
     object.close();
 }

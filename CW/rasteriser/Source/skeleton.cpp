@@ -134,7 +134,7 @@ int main( int argc, char* argv[] )
                      3.14, -1.2, 0,
                      -1, 1, 1);
   triangles.insert( triangles.end(), mooTriangles.begin(), mooTriangles.end() );
-
+  mooTriangles.clear();
   vector<Triangle> ursacheTriangles;
   LoadObject("ursache.obj", ursacheTriangles);
   normaliseTriangles(ursacheTriangles,
@@ -143,6 +143,7 @@ int main( int argc, char* argv[] )
                      3.14, 0.3, 0,
                      -1 , 1, 1);
   triangles.insert( triangles.end(), ursacheTriangles.begin(), ursacheTriangles.end() );
+  ursacheTriangles.clear();
   Camera cam;
   reset_camera(cam);
 
