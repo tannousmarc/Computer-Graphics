@@ -2,7 +2,7 @@
 #include <glm/glm.hpp>
 #include "utils.cpp"
 #include <stdint.h>
-#include <omp.h>
+// #include <omp.h>
 
 
 // OMP_NUM_THREADS
@@ -133,6 +133,8 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
    for(int y = minY; y < maxY; y++){
      if(y >= SCREEN_HEIGHT || y < 0)
       continue;
+
+    //  #pragma omp parallel for
      for(int x = minX; x < maxX; x++){
        if(x < 0 || x >= SCREEN_WIDTH)
         continue;
@@ -183,24 +185,24 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles;
   LoadTestModel(triangles);
   
-  vector<Triangle> mooTriangles;
-  LoadObject("moo.obj", mooTriangles);
-  normaliseTriangles(mooTriangles,
-                     2.5, 
-                     0.6, -0.15, -0.2,
-                     3.14, -1.2, 0,
-                     -1, 1, 1);
-  triangles.insert( triangles.end(), mooTriangles.begin(), mooTriangles.end() );
-  mooTriangles.clear();
-  vector<Triangle> ursacheTriangles;
-  LoadObject("ursache.obj", ursacheTriangles);
-  normaliseTriangles(ursacheTriangles,
-                     4, 
-                     -0.35, -0.75, 0.40,
-                     3.14, 0.3, 0,
-                     -1 , 1, 1);
-  triangles.insert( triangles.end(), ursacheTriangles.begin(), ursacheTriangles.end() );
-  ursacheTriangles.clear();
+  // vector<Triangle> mooTriangles;
+  // LoadObject("moo.obj", mooTriangles);
+  // normaliseTriangles(mooTriangles,
+  //                    2.5, 
+  //                    0.6, -0.15, -0.2,
+  //                    3.14, -1.2, 0,
+  //                    -1, 1, 1);
+  // triangles.insert( triangles.end(), mooTriangles.begin(), mooTriangles.end() );
+  // mooTriangles.clear();
+  // vector<Triangle> ursacheTriangles;
+  // LoadObject("ursache.obj", ursacheTriangles);
+  // normaliseTriangles(ursacheTriangles,
+  //                    4, 
+  //                    -0.35, -0.75, 0.40,
+  //                    3.14, 0.3, 0,
+  //                    -1 , 1, 1);
+  // triangles.insert( triangles.end(), ursacheTriangles.begin(), ursacheTriangles.end() );
+  // ursacheTriangles.clear();
   Camera cam;
   reset_camera(cam);
 
@@ -237,7 +239,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
   reset_camera(lightPOVCam);
   lightPOVCam.cameraPos = vec4(light.lightPos.x, light.lightPos.y, light.lightPos.z, 1);
 
-  #pragma omp parallel for
+  // #pragma omp parallel for
   for(uint32_t i = 0; i < triangles.size(); i++){
     vec4 currentNormal = triangles[i].normal;
     vec3 currentReflectance(1,1,1);

@@ -11,9 +11,12 @@ EXEC=$(B_DIR)/$(FILE)
 
 # fopenmp
 # default build settings
-CC_OPTS=-Ofast -std=c++11 -qopenmp -c -Wall -pipe -Wno-switch -ggdb -g3 
-LN_OPTS=-qopenmp
-CC=icpc
+# CC_OPTS=-Ofast -std=c++11 -qopenmp -c -Wall -pipe -Wno-switch -ggdb -g3 
+CC_OPTS=-Ofast -std=c++11 -c -Wall -pipe -Wno-switch -ggdb -g3 
+# LN_OPTS=-qopenmp
+# CC=icpc
+LN_OPTS=
+CC=g++
 
 ########
 #       SDL options
