@@ -184,7 +184,7 @@ int main( int argc, char* argv[] )
   // vec2 firstVec(rand() % 256, rand()%256);
   // vec2 secondVec(rand() % 256, rand()%256);
   // vec2 thirdVec(rand() % 256, rand()%256);
-  vec2 firstVec(0, 0);
+  vec2 firstVec(350, 0);
   vec2 secondVec(500, 0);
   vec2 thirdVec(0, 500);
   LoadTestModel(triangles);
@@ -192,29 +192,34 @@ int main( int argc, char* argv[] )
   for(int i = 0; i < sceneCount; i++){
     triangles[i].hasTexture = false;
   }
-  vector<Triangle> mooTriangles;
-  LoadObject("moo.obj", mooTriangles);
-  normaliseTriangles(mooTriangles,
-                     2.5, 
-                     0.6, -0.15, -0.2,
-                     3.14, -1.2, 0,
+  vector<Triangle> wolfTriangles;
+  LoadObject("wolf.obj", wolfTriangles);
+  normaliseTriangles(wolfTriangles,
+                     2.1, 
+                     0.6, -0.4, 0.1,
+                     3.15, -0.9, 0,
                      -1, 1, 1);
-  triangles.insert( triangles.end(), mooTriangles.begin(), mooTriangles.end() );
-  int mooCount = triangles.size();
-  for(int i = sceneCount; i < mooCount; i++){
-    triangles[i].hasTexture = true;
+  triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
+  int wolfCount = triangles.size();
+  for(int i = sceneCount; i < wolfCount; i++){
+    triangles[i].hasTexture = false;
     triangles[i].set_uvs(firstVec, secondVec, thirdVec);
   }
-  mooTriangles.clear();
-  // vector<Triangle> ursacheTriangles;
-  // LoadObject("ursache.obj", ursacheTriangles);
-  // normaliseTriangles(ursacheTriangles,
-  //                    4, 
-  //                    -0.35, -0.75, 0.40,
-  //                    3.14, 0.3, 0,
-  //                    -1 , 1, 1);
-  // triangles.insert( triangles.end(), ursacheTriangles.begin(), ursacheTriangles.end() );
-  // ursacheTriangles.clear();
+  wolfTriangles.clear();
+  vector<Triangle> deerTriangles;
+  LoadObject("deer.obj", deerTriangles);
+  normaliseTriangles(deerTriangles,
+                     1.2, 
+                     0.8, -0.99, 0.1,
+                     3.14, -2.15, 0,
+                     -1 , 1, -1);
+  triangles.insert( triangles.end(), deerTriangles.begin(), deerTriangles.end() );
+  int deerCount = triangles.size();
+   for(int i = sceneCount; i < deerCount; i++){
+    triangles[i].hasTexture = false;
+    triangles[i].set_uvs(firstVec, secondVec, thirdVec);
+  }
+  deerTriangles.clear();
   Camera cam;
   reset_camera(cam);
 

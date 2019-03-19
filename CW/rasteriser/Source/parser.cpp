@@ -65,7 +65,7 @@ void LoadObject(const char* file, std::vector<Triangle>& triangles)
                 triangles.push_back(Triangle(vertices[stoi(parsedA[0].c_str()) - 1].position, 
                                             vertices[stoi(parsedB[0].c_str()) - 1].position, 
                                             vertices[stoi(parsedC[0].c_str()) - 1].position, 
-                                            vec3(0.2, 0.5, 0.7),
+                                            vec3(1, 1, 1),
                                             normals[stoi(parsedA[2].c_str()) - 1]
                                             ));
             }
@@ -73,7 +73,7 @@ void LoadObject(const char* file, std::vector<Triangle>& triangles)
                 triangles.push_back(Triangle(vertices[stoi(parsedA[0].c_str()) - 1].position, 
                                             vertices[stoi(parsedB[0].c_str()) - 1].position, 
                                             vertices[stoi(parsedC[0].c_str()) - 1].position, 
-                                            vec3(0.3, 0.65, 0.7),
+                                            vec3(0.71, 0.71, 0.71),
                                             1
                                             ));
             }
