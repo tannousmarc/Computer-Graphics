@@ -200,26 +200,30 @@ int main( int argc, char* argv[] )
                      3.15, -0.9, 0,
                      -1, 1, 1);
   triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
+
   int wolfCount = triangles.size();
   for(int i = sceneCount; i < wolfCount; i++){
     triangles[i].hasTexture = false;
     triangles[i].set_uvs(firstVec, secondVec, thirdVec);
   }
   wolfTriangles.clear();
-  vector<Triangle> deerTriangles;
-  LoadObject("deer.obj", deerTriangles);
-  normaliseTriangles(deerTriangles,
-                     1.2, 
-                     0.8, -0.99, 0.1,
-                     3.14, -2.15, 0,
-                     -1 , 1, -1);
-  triangles.insert( triangles.end(), deerTriangles.begin(), deerTriangles.end() );
-  int deerCount = triangles.size();
-   for(int i = sceneCount; i < deerCount; i++){
-    triangles[i].hasTexture = false;
-    triangles[i].set_uvs(firstVec, secondVec, thirdVec);
-  }
-  deerTriangles.clear();
+
+  vector<Triangle> dogTriangles;
+  LoadObject("12228_Dog_v1_L2.obj", dogTriangles);
+  // vector<Triangle> deerTriangles;
+  // LoadObject("deer.obj", deerTriangles);
+  // normaliseTriangles(deerTriangles,
+  //                    1.2, 
+  //                    0.8, -0.99, 0.1,
+  //                    3.14, -2.15, 0,
+  //                    -1 , 1, -1);
+  // triangles.insert( triangles.end(), deerTriangles.begin(), deerTriangles.end() );
+  // int deerCount = triangles.size();
+  //  for(int i = sceneCount; i < deerCount; i++){
+  //   triangles[i].hasTexture = false;
+  //   triangles[i].set_uvs(firstVec, secondVec, thirdVec);
+  // }
+  // deerTriangles.clear();
   Camera cam;
   reset_camera(cam);
 

@@ -12,6 +12,11 @@ using glm::mat4;
 using glm::mat4x4;
 using glm::ivec2;
 
+struct Texture{
+  vec2 mapping;
+  string textureName;
+};
+
 struct Camera{
   float focalLength;
   vec4 cameraPos;
@@ -34,6 +39,7 @@ struct Vertex{
   vec4 normal;
   vec2 reflectance;
   vec2 texturePosition;
+  Texture texture;
 };
 
 struct Light{
@@ -41,6 +47,8 @@ struct Light{
   vec3 lightPower;
   vec3 indirectLightPowerPerArea;
 };
+
+
 
 #define SCREEN_WIDTH 1024
 #define SCREEN_HEIGHT 640

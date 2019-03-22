@@ -129,6 +129,7 @@ void normaliseTriangles(vector<Triangle>& rawTriangles, float scale = 1,
 }
 
 // GET TEXTURE PIXEL AT POSITION
+// TODO
 vec3 getTextureAt(SDL_Surface *surface, int x, int y)
 {
   int bytes_per_pixel = surface->format->BytesPerPixel;
