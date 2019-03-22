@@ -55,7 +55,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
       int neighbourCounter = 0;
       vec3 finalColor(0.f,0.f,0.f);
       // compute values in 5 positions: above, below, left, right, center.
-      for(int neighbourIndex = 0; neighbourIndex < 5; neighbourIndex++){
+      for(int neighbourIndex = 0; ANTIALIASING_MODE ? neighbourIndex < 5 : neighbourIndex < 1; neighbourIndex++){
         d.x = (x - screen->width/2 + offsetX[neighbourIndex]);
         d.y = (y - screen->height/2 + offsetY[neighbourIndex]);
         d.z = cam.focalLength;
