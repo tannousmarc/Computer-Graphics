@@ -1,7 +1,6 @@
 #include "camera.h"
 #include "definitions.h"
 
-
 void reset_camera(Camera &cam){
   cam.focalLength = SCREEN_WIDTH;
   cam.cameraPos = vec4(0,0,-3,1);
@@ -9,9 +8,6 @@ void reset_camera(Camera &cam){
   cam.cameraRotation = mat4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
   cam.yaw = 0.0;
 }
-
-
-
 
 void rotateY(Camera& cam, float angle){
   vec4 v1(cos(angle), 0, -sin(angle), 0);
