@@ -16,8 +16,10 @@ using glm::mat4;
 struct Camera{
   float focalLength;
   vec4 cameraPos;
-  mat4 cameraRotation;
+  mat4 cameraRotationX;
+  mat4 cameraRotationY;
   float yaw;
+  float pitch;
 };
 
 struct Intersection

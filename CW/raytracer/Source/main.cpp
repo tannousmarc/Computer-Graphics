@@ -54,11 +54,11 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
         d.y = (y - screen->height/2);
         d.z = cam.focalLength;
 
-        if(ClosestIntersection(cam, cam.cameraRotation*d, triangles, inter)){
+        if(ClosestIntersection(cam, cam.cameraRotationX * cam.cameraRotationY *d, triangles, inter)){
           vec3 lightD = directLight(cam, triangles, inter, light);
           color = triangles[inter.triangleIndex].color;
                if(triangles[inter.triangleIndex].isMirror){
-                 color = mirror(cam, triangles, inter, light, cam.cameraRotation * d, 0);
+                 color = mirror(cam, triangles, inter, light, normalize(cam.cameraRotationX * cam.cameraRotationY * d), 0);
                }
 
           PutPixelSDL(screen, x, y, color * lightD);
