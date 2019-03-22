@@ -1,4 +1,5 @@
-#include "definitions.cpp"
+#include "intersections.h"
+#include "definitions.h"
 
 bool ClosestIntersection( Camera& cam, vec4 dir,
     const vector<Triangle>& triangles,
