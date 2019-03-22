@@ -22,7 +22,7 @@ vec3 mirror(Camera& cam, const vector<Triangle>& triangles, Intersection& inter,
   }
 
   Camera newCam;
-  newCam.cameraPos = inter.position + dir * 0.01f;
+  newCam.cameraPos = inter.position + dir * 0.001f;
 
   if(ClosestIntersection(newCam, dir, triangles, mirrorInter)){
     if(triangles[mirrorInter.triangleIndex].isMirror){
