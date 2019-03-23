@@ -4,7 +4,7 @@ Raytracer:
 
 - Kramer's rule
 - OpenMP
-- Mirrors
+- Perfect Mirrors
 - Antialiasing
 - Smooth shadows
 
