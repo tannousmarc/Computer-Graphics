@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <limits.h>
+#include <random>
 
 #include "definitions.h"
 #include "light.cpp"
@@ -13,6 +14,12 @@
 #include "utils.cpp"
 #include "ray.h"
 
+// Helpers for random generation
+std::mt19937 mersenneTwister;
+std::uniform_real_distribution<float> uniform;
+
+#define RND (2.0 * uniform(mersenneTwister) - 1.0)
+#define RND2 (uniform(mersenneTwister))
 //Extensions: Kramer's rule, Mirrors
 
 int main(int argc, char* argv[])
@@ -39,9 +46,52 @@ int main(int argc, char* argv[])
   return 0;
 }
 
-// offsets for antialiasing
-float offsetX[5] = {0, 0, -0.5f, 0.5f, 0};
-float offsetY[5] = {0, 0.5f, 0, 0, -0.5f};
+void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color){
+  //Russian roulette factor
+  float rrFactor = 1.0;
+  if(depth >= 5){
+    const float rrStopProbability = 0.1;
+    if(RND2 <= rrStopProbability){
+      return;
+    }
+    rrFactor = 1.0 / (1.0 - rrStopProbability);
+  }
+
+  Intersection intersection;
+  if(closestIntersection(ray, triangles, intersection) == false)
+    return;
+  vec3 hitPoint = vec3(ray.origin.x, ray.origin.y, ray.origin.z) +
+                  vec3(ray.direction.x, ray.direction.y, ray.direction.z) * intersection.distance;
+  vec4 surfaceNormal = triangles[intersection.triangleIndex].normal;
+  ray.origin.x = hitPoint.x;
+  ray.origin.y = hitPoint.y;
+  ray.origin.z = hitPoint.z;
+
+  const float emission = triangles[intersection.triangleIndex].material.emission;
+  color = color + vec3(emission, emission, emission) * rrFactor;
+  if(strcmp(triangles[intersection.triangleIndex].material.type, "diffuse")){
+      vec3 rotX, rotY;
+      orthonormalSystem(surfaceNormal, rotX, rotY);
+      vec3 sampledDir = diffuseHemisphere(RND2, RND2);
+      vec3 rotatedDir;
+      rotatedDir.x = dot(vec3(rotX.x, rotY.x, surfaceNormal.x), sampledDir);
+      rotatedDir.y = dot(vec3(rotX.y, rotY.y, surfaceNormal.y), sampledDir);
+      rotatedDir.z = dot(vec3(rotX.z, rotY.z, surfaceNormal.z), sampledDir);
+      float cost = dot(ray.direction, surfaceNormal);
+      vec3 tmp(0,0,0);
+      trace(ray, triangles, depth + 1, tmp);
+      color = color + (tmp * triangles[intersection.triangleIndex].color) * cost * 0.1f * rrFactor;
+  }
+
+  if(strcmp(triangles[intersection.triangleIndex].material.type, "specular")){
+    float cost = dot(ray.direction, surfaceNormal);
+    ray.direction = ray.direction - normalize(surfaceNormal * (cost * 2));
+    vec3 temp(0,0,0);
+    trace(ray, triangles, depth + 1, temp);
+    color = color + temp * rrFactor;
+  }
+}
+
 void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light)
 {
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -51,40 +101,33 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
   vec3 color;
   Ray ray;
 
-  #pragma omp parallel for private(inter, d, ray, color)
-  for(int y=0; y<screen->height; y++){
-    for(int x=0; x<screen->width; x++){
-      // incremeneted each time we find a neighbour inside the image boundaries
-      int neighbourCounter = 0;
-      vec3 finalColor(0.f,0.f,0.f);
-      // compute values in 5 positions: above, below, left, right, center.
-      for(int neighbourIndex = 0; ANTIALIASING_MODE ? neighbourIndex < 5 : neighbourIndex < 1; neighbourIndex++){
-        d.x = (x - screen->width/2 + offsetX[neighbourIndex]);
-        d.y = (y - screen->height/2 + offsetY[neighbourIndex]);
+  vec3 **pixels = new vec3*[SCREEN_WIDTH];
+  for(int i = 0; i < SCREEN_WIDTH; i++)
+    pixels[i] = new vec3[SCREEN_HEIGHT];
+
+  //#pragma omp parallel for private(inter, d, ray, color)
+  for(int x = 0; x < SCREEN_WIDTH; x++){
+    for(int y = 0; y < SCREEN_HEIGHT; y++){
+      for(int s = 0; s < SAMPLES_PER_PIXEL; s++){
+        vec3 color;
+        Ray ray;
+        d.x = (x - screen->width/2);
+        d.y = (y - screen->height/2);
         d.z = cam.focalLength;
-        // check if the pixel position is inside the screen
-        if(checkBoundingBox(x + offsetX[neighbourIndex], y + offsetY[neighbourIndex])){
-          neighbourCounter++;
-
-          ray = Ray(cam.cameraPos, cam.cameraRotationX * cam.cameraRotationY * d);
-          if(closestIntersection(ray, triangles, inter)){
-            vec3 lightD = directLight(triangles, inter, light);
-            color = triangles[inter.triangleIndex].color;
-
-            if(triangles[inter.triangleIndex].isMirror){
-              color = mirror(triangles, inter, light, normalize(ray.direction), 0);
-            }
-            finalColor += color * lightD;
-          }
-        }
+        ray.origin = cam.cameraPos;
+        ray.direction = cam.cameraRotationX * cam.cameraRotationY * d;
+        trace(ray, triangles, 0, color);
+        pixels[x][y] = pixels[x][y] + color / SAMPLES_PER_PIXEL;
       }
-      finalColor.x /= neighbourCounter;
-      finalColor.y /= neighbourCounter;
-      finalColor.z /= neighbourCounter;
-      PutPixelSDL(screen, x, y, finalColor);
     }
   }
 
+  for(int x = 0; x < SCREEN_WIDTH; x++)
+    for(int y = 0; y < SCREEN_HEIGHT; y++){
+      if(pixels[x][y].x > 0 || pixels[x][y].y > 0 || pixels[x][y].z > 0)
+        printf("%d %d: %f %f %f\n", x, y, pixels[x][y].x, pixels[x][y].y, pixels[x][y].z);
+      PutPixelSDL(screen, x, y, pixels[x][y]);
+    }
 
 }
 
