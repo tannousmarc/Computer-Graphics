@@ -3,6 +3,7 @@
 #include "utils.cpp"
 #include <stdint.h>
 // #include <omp.h>
+#include "OBJ_Loader.h"
 SDL_Surface *textureSurface;
 
 // OMP_NUM_THREADS
@@ -192,24 +193,24 @@ int main( int argc, char* argv[] )
   for(int i = 0; i < sceneCount; i++){
     triangles[i].hasTexture = false;
   }
-  vector<Triangle> wolfTriangles;
-  LoadObject("wolf.obj", wolfTriangles);
-  normaliseTriangles(wolfTriangles,
-                     2.1, 
-                     0.6, -0.4, 0.1,
-                     3.15, -0.9, 0,
-                     -1, 1, 1);
-  triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
+  // vector<Triangle> wolfTriangles;
+  // LoadObject("wolf.obj", wolfTriangles);
+  // normaliseTriangles(wolfTriangles,
+  //                    2.1, 
+  //                    0.6, -0.4, 0.1,
+  //                    3.15, -0.9, 0,
+  //                    -1, 1, 1);
+  // triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
 
-  int wolfCount = triangles.size();
-  for(int i = sceneCount; i < wolfCount; i++){
-    triangles[i].hasTexture = false;
-    triangles[i].set_uvs(firstVec, secondVec, thirdVec);
-  }
-  wolfTriangles.clear();
+  // int wolfCount = triangles.size();
+  // for(int i = sceneCount; i < wolfCount; i++){
+  //   triangles[i].hasTexture = false;
+  //   triangles[i].set_uvs(firstVec, secondVec, thirdVec);
+  // }
+  // wolfTriangles.clear();
 
-  vector<Triangle> dogTriangles;
-  LoadObject("12228_Dog_v1_L2.obj", dogTriangles);
+  // vector<Triangle> dogTriangles;
+  // LoadObject("12228_Dog_v1_L2.obj", dogTriangles);
   // vector<Triangle> deerTriangles;
   // LoadObject("deer.obj", deerTriangles);
   // normaliseTriangles(deerTriangles,
@@ -224,6 +225,23 @@ int main( int argc, char* argv[] )
   //   triangles[i].set_uvs(firstVec, secondVec, thirdVec);
   // }
   // deerTriangles.clear();
+
+  vector<Triangle> catTriangles;
+  LoadObject("Objects/Bear/BEAR_KDK.obj", catTriangles);
+  normaliseTriangles(catTriangles,
+                     2.1, 
+                     0.6, -0.4, 0.1,
+                     3.15, -0.9, 0,
+                     1, 1, -1);
+  triangles.insert( triangles.end(), catTriangles.begin(), catTriangles.end() );
+  int catCount = triangles.size();
+  // for(int i = sceneCount; i < catCount; i++){
+  //   triangles[i].hasTexture = false;
+  //   triangles[i].set_uvs(firstVec, secondVec, thirdVec);
+  // }
+
+
+
   Camera cam;
   reset_camera(cam);
 
