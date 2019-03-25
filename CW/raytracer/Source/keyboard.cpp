@@ -36,24 +36,24 @@ void handleKeyboard(Camera &cam, Light &light){
     light.lightPos += vec4(0, 0.02f, 0, 0);
   }
 
-  if( keyState[SDL_SCANCODE_J]){
+  if( keyState[SDL_SCANCODE_J] ){
     cam.yaw -= 0.04;
     rotateY(cam, cam.yaw);
   }
-  if( keyState[SDL_SCANCODE_L]){
+  if( keyState[SDL_SCANCODE_L] ){
     cam.yaw += 0.04;
     rotateY(cam, cam.yaw);
   }
-  if( keyState[SDL_SCANCODE_I]){
+  if( keyState[SDL_SCANCODE_I] ){
     cam.pitch += 0.04;
     rotateX(cam, cam.pitch);
   }
-  if( keyState[SDL_SCANCODE_K]){
+  if( keyState[SDL_SCANCODE_K] ){
     cam.pitch -= 0.04;
     rotateX(cam, cam.pitch);
   }
 
-  if( keyState[SDL_SCANCODE_SPACE]){
+  if( keyState[SDL_SCANCODE_SPACE] ){
     reset_camera(cam);
     reset_light(light);
   }

@@ -1,7 +1,7 @@
 #include "mirror.h"
 #include "light.h"
 
-vec3 mirror(Camera& cam, const vector<Triangle>& triangles, Intersection& inter, Light light, vec4 direction, int bounces){
+vec3 mirror(const vector<Triangle>& triangles, Intersection& inter, Light light, vec4 direction, int bounces){
   bounces++;
 
   Intersection mirrorInter;
@@ -17,23 +17,22 @@ vec3 mirror(Camera& cam, const vector<Triangle>& triangles, Intersection& inter,
   dir = normalize(direction + (2.0f * triangles[inter.triangleIndex].normal * c));
 
   if(bounces > BOUNCES_THRESHOLD){
-    vec3 lightIntensity = directLight(cam, triangles, inter, light);
+    vec3 lightIntensity = directLight(triangles, inter, light);
     return triangles[inter.triangleIndex].color * lightIntensity;
   }
 
-  Camera newCam;
-  newCam.cameraPos = inter.position + dir * 0.001f;
+  Ray ray(inter.position + dir * 0.001f, dir);
 
-  if(ClosestIntersection(newCam, dir, triangles, mirrorInter)){
+  if(closestIntersection(ray, triangles, mirrorInter)){
     if(triangles[mirrorInter.triangleIndex].isMirror){
-      color = mirror(cam, triangles, mirrorInter, light, dir, bounces);
+      color = mirror(triangles, mirrorInter, light, dir, bounces);
     }
     else{
       color = triangles[mirrorInter.triangleIndex].color;
     }
     vec3 lightIntensity;
 
-    lightIntensity = directLight(cam, triangles, mirrorInter, light);
+    lightIntensity = directLight(triangles, mirrorInter, light);
     return lightIntensity * color;
   }
   return color;
