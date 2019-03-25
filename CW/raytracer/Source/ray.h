@@ -7,7 +7,7 @@ struct Ray{
 
   Ray() = default;
   Ray(vec4 origin, vec4 direction):
-    origin(origin), direction(direction) {};
+    origin(origin), direction(normalize(direction)) {};
 };
 
 #endif
