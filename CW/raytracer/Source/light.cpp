@@ -25,5 +25,5 @@ vec3 directLight(const vector<Triangle>& triangles, Intersection& inter, Light l
 
     d = vec3(0.f, 0.f, 0.f);
   }
-  return d + indirectLight;
+  return d;
 }
