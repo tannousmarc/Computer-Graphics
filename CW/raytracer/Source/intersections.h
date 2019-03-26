@@ -1,11 +1,13 @@
 #ifndef INTERSECTIONS
 #define INTERSECTIONS
 
-bool ClosestIntersection(Camera& cam, vec4 dir,
+#include "ray.h"
+
+bool closestIntersection(const Ray &ray,
     const vector<Triangle>& triangles,
     Intersection& closestIntersection);
 
-bool ClosestIntersectionLight( vec4 start, vec4 dir,
+bool existsIntersection(const Ray &ray,
     const vector<Triangle>& triangles, Intersection inter);
 
 #endif

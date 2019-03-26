@@ -1,10 +1,9 @@
 #include "intersections.h"
 #include "definitions.h"
+#include "ray.h"
 
-bool ClosestIntersection( Camera& cam, vec4 dir,
-    const vector<Triangle>& triangles,
-    Intersection& closestIntersection ){
-
+bool closestIntersection(const Ray &ray, const vector<Triangle>& triangles,
+                         Intersection& closestIntersection){
   float minimumDistance = std::numeric_limits<float>::max();
   bool okay = false;
 
@@ -13,10 +12,11 @@ bool ClosestIntersection( Camera& cam, vec4 dir,
     vec4 v0 = triangle.v0;
     vec4 v1 = triangle.v1;
     vec4 v2 = triangle.v2;
-    vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
-    vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
-    vec3 b = vec3(cam.cameraPos.x-v0.x,cam.cameraPos.y-v0.y,cam.cameraPos.z-v0.z);
-    mat3 A( vec3(-dir), e1, e2 );
+
+    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+    vec3 e2 = vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+    vec3 b = vec3(ray.origin.x - v0.x, ray.origin.y - v0.y, ray.origin.z - v0.z);
+    mat3 A(vec3(-ray.direction), e1, e2);
     mat3 m = A;
     m[0] = b;
     float t = glm::determinant(m) / glm::determinant(A);
@@ -36,8 +36,8 @@ bool ClosestIntersection( Camera& cam, vec4 dir,
   return okay;
 };
 
-bool ClosestIntersectionLight( vec4 start, vec4 dir,
-    const vector<Triangle>& triangles, Intersection inter){
+bool existsIntersection(const Ray &ray, const vector<Triangle>& triangles,
+                              Intersection inter){
   bool okay = false;
 
   for(unsigned int i = 0; i < triangles.size(); i++){
@@ -47,10 +47,11 @@ bool ClosestIntersectionLight( vec4 start, vec4 dir,
     vec4 v0 = triangle.v0;
     vec4 v1 = triangle.v1;
     vec4 v2 = triangle.v2;
-    vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
-    vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
-    vec3 b = vec3(start.x-v0.x,start.y-v0.y,start.z-v0.z);
-    mat3 A( vec3(-dir), e1, e2 );
+
+    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+    vec3 e2 = vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+    vec3 b = vec3(ray.origin.x - v0.x, ray.origin.y - v0.y, ray.origin.z - v0.z);
+    mat3 A(vec3(-ray.direction), e1, e2);
 
     mat3 m = A;
     m[0] = b;

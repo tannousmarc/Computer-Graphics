@@ -5,6 +5,7 @@
 
 #include <glm/glm.hpp>
 #include <vector>
+#include "material.h"
 
 // Used to describe a triangular surface:
 class Triangle
@@ -16,15 +17,16 @@ public:
 	glm::vec4 normal;
 	glm::vec3 color;
 	bool isMirror;
+	Material material;
 
 	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color )
-		: v0(v0), v1(v1), v2(v2), color(color), isMirror(false)
+		: v0(v0), v1(v1), v2(v2), color(color), material(Material(0, "diffuse"))
 	{
 		ComputeNormal();
 	}
 
-	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, bool isMirror )
-		: v0(v0), v1(v1), v2(v2), color(color), isMirror(isMirror)
+	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, Material material )
+		: v0(v0), v1(v1), v2(v2), color(color), material(material)
 	{
 		ComputeNormal();
 	}
@@ -82,12 +84,12 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	triangles.push_back( Triangle( C, D, B, green ) );
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple, true ) );
-	triangles.push_back( Triangle( C, E, G, purple, true ) );
+	triangles.push_back( Triangle( A, E, C, purple ) );
+	triangles.push_back( Triangle( C, E, G, purple ) );
 
 	// Right wall
-	triangles.push_back( Triangle( F, B, D, yellow, true ) );
-	triangles.push_back( Triangle( H, F, D, yellow, true ) );
+	triangles.push_back( Triangle( F, B, D, yellow ) );
+	triangles.push_back( Triangle( H, F, D, yellow ) );
 
 	// Ceiling
 	triangles.push_back( Triangle( E, F, G, cyan ) );
@@ -144,12 +146,12 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec4(314,330,456,1);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,blue, true) );
-	triangles.push_back( Triangle(E,F,B,blue, true) );
+	triangles.push_back( Triangle(E,B,A,blue) );
+	triangles.push_back( Triangle(E,F,B,blue) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,blue, true) );
-	triangles.push_back( Triangle(F,H,D,blue, true) );
+	triangles.push_back( Triangle(F,D,B,blue) );
+	triangles.push_back( Triangle(F,H,D,blue) );
 
 	// BACK
 	triangles.push_back( Triangle(H,C,D,blue) );
