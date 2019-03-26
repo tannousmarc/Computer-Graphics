@@ -197,20 +197,20 @@ void LoadObject(string path, std::vector<Triangle>& triangles){
     if(loadout){
         for (int i = 0; i < Loader.LoadedMeshes.size(); i++){
             objl::Mesh curMesh = Loader.LoadedMeshes[i];
-            for (int j = 0; j < curMesh.Vertices.size(); j++)
-			{
-				cout << "V" << j << ": " <<
-					"P(" << curMesh.Vertices[j].Position.X << ", " << curMesh.Vertices[j].Position.Y << ", " << curMesh.Vertices[j].Position.Z << ") " <<
-					"N(" << curMesh.Vertices[j].Normal.X << ", " << curMesh.Vertices[j].Normal.Y << ", " << curMesh.Vertices[j].Normal.Z << ") " <<
-					"TC(" << curMesh.Vertices[j].TextureCoordinate.X << ", " << curMesh.Vertices[j].TextureCoordinate.Y << ")\n";
-			}
-            cout << "Indices:\n";
+            // for (int j = 0; j < curMesh.Vertices.size(); j++)
+			// {
+			// 	cout << "V" << j << ": " <<
+			// 		"P(" << curMesh.Vertices[j].Position.X << ", " << curMesh.Vertices[j].Position.Y << ", " << curMesh.Vertices[j].Position.Z << ") " <<
+			// 		"N(" << curMesh.Vertices[j].Normal.X << ", " << curMesh.Vertices[j].Normal.Y << ", " << curMesh.Vertices[j].Normal.Z << ") " <<
+			// 		"TC(" << curMesh.Vertices[j].TextureCoordinate.X << ", " << curMesh.Vertices[j].TextureCoordinate.Y << ")\n";
+			// }
+            // cout << "Indices:\n";
 
 			// Go through every 3rd index and print the
 			//	triangle that these indices represent
 			for (int j = 0; j < curMesh.Indices.size(); j += 3)
 			{
-				cout << "T" << j / 3 << ": " << curMesh.Indices[j] << ", " << curMesh.Indices[j + 1] << ", " << curMesh.Indices[j + 2] << "\n";
+				// cout << "T" << j / 3 << ": " << curMesh.Indices[j] << ", " << curMesh.Indices[j + 1] << ", " << curMesh.Indices[j + 2] << "\n";
                 auto currentV1 = curMesh.Vertices[curMesh.Indices[j]];
                 auto currentV2 = curMesh.Vertices[curMesh.Indices[j+1]];
                 auto currentV3 = curMesh.Vertices[curMesh.Indices[j+2]];
@@ -228,6 +228,7 @@ void LoadObject(string path, std::vector<Triangle>& triangles){
 
                 if(textureV1.x != 0 || textureV2.y != 0){
                     currentTriangle.set_uvs(textureV1, textureV2, textureV3);
+                    // cout << textureV3.x << " " << textureV3.y << endl;
                     currentTriangle.hasTexture = true;
                 }else{
                     currentTriangle.hasTexture = false;

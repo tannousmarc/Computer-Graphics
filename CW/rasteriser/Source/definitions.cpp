@@ -30,8 +30,8 @@ struct Pixel{
   int y;
   float zinv;
   vec3 pos3d;
-  int textureX;
-  int textureY;
+  float textureX;
+  float textureY;
 };
 
 struct Vertex{

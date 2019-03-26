@@ -165,3 +165,39 @@ vec3 getTextureAt(SDL_Surface *surface, int x, int y)
   pixel_value.b = b/255.f;
   return pixel_value;
 }
+
+
+vec3 getTextureAt(SDL_Surface *surface, float x, float y){
+  int bytes_per_pixel = surface->format->BytesPerPixel;
+  Uint8 *p = (Uint8 *)surface->pixels + ((int)((1.0-y) * surface->h)) * surface->pitch + ((int)((1.0-x) * surface->w)) * bytes_per_pixel;
+
+  Uint32 sdl_pixel_value;
+  vec3 pixel_value;
+  switch(bytes_per_pixel) {
+    case 1:
+      sdl_pixel_value = *p;
+      break;
+
+    case 2:
+      sdl_pixel_value = *(Uint16 *)p;
+      break;
+
+    case 3:
+      if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
+        sdl_pixel_value = p[0] << 16 | p[1] << 8 | p[2];
+      else
+        sdl_pixel_value = p[0] | p[1] << 8 | p[2] << 16;
+
+    case 4:
+      sdl_pixel_value = *(Uint32 *)p;
+      break;
+    default:
+      sdl_pixel_value = 0;     
+  }
+  uint8_t r, g, b;
+  SDL_GetRGB(sdl_pixel_value, surface->format, &r, &g, &b);
+  pixel_value.r = r/255.f;
+  pixel_value.g = g/255.f;
+  pixel_value.b = b/255.f;
+  return pixel_value;
+}
