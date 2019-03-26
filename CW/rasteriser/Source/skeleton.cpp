@@ -154,10 +154,18 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
         tPixel.zinv = vertexPixels[1].zinv*a + vertexPixels[2].zinv*b + vertexPixels[0].zinv*c;
         tPixel.pos3d = (vertexPixels[1].pos3d * vertexPixels[1].zinv*a + vertexPixels[2].pos3d * vertexPixels[2].zinv*b + vertexPixels[0].pos3d * vertexPixels[0].zinv*c) / tPixel.zinv;
         if(hasTexture){
+          // color = (
+          //           (getTextureAt(textureSurface, vertexPixels[0].textureX + v0.x, vertexPixels[0].textureY + v0.y) * a) +
+          //           (getTextureAt(textureSurface, vertexPixels[1].textureX + v1.x, vertexPixels[1].textureY + v1.y) * b) +
+          //           (getTextureAt(textureSurface, vertexPixels[2].textureX + v2.x, vertexPixels[2].textureY + v2.y) * c)
+          //         );
+          // cout << vertexPixels[0].textureX << " " << vertexPixels[0].textureY << " " <<
+          //   vertexPixels[1].textureX << " " << vertexPixels[1].textureY << " " <<
+          //   vertexPixels[2].textureX << " " << vertexPixels[2].textureY << " " << endl;
           color = (
-                    (getTextureAt(textureSurface, vertexPixels[0].textureX + v0.x, vertexPixels[0].textureY + v0.y) * a) +
-                    (getTextureAt(textureSurface, vertexPixels[1].textureX + v1.x, vertexPixels[1].textureY + v1.y) * b) +
-                    (getTextureAt(textureSurface, vertexPixels[2].textureX + v2.x, vertexPixels[2].textureY + v2.y) * c)
+                    (getTextureAt(textureSurface, vertexPixels[0].textureX, vertexPixels[0].textureY) * a) +
+                    (getTextureAt(textureSurface, vertexPixels[1].textureX, vertexPixels[1].textureY) * b) +
+                    (getTextureAt(textureSurface, vertexPixels[2].textureX, vertexPixels[2].textureY) * c)
                   );
         }
         PixelShader(tPixel, color, screen, depthBuffer, light, normal, reflectance);
@@ -178,7 +186,11 @@ int main( int argc, char* argv[] )
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   SDL_SetRelativeMouseMode(SDL_TRUE);
 
-  textureSurface = SDL_LoadBMP("Textures/sah.bmp");
+  // textureSurface = SDL_LoadBMP("Textures/sah.bmp");
+  // textureSurface = SDL_LoadBMP("Objects/Bear/bear_kdk.bmp");
+  // textureSurface = SDL_LoadBMP("Objects/DogMaya/Dog_diffuse.bmp");
+  // textureSurface = SDL_LoadBMP("Objects/Skull/Skull.bmp");
+  textureSurface = SDL_LoadBMP("Objects/ContainerMaya/12281_Container_diffuse.bmp");
   vector<Triangle> triangles;
 
   srand(time(NULL));
@@ -227,12 +239,16 @@ int main( int argc, char* argv[] )
   // deerTriangles.clear();
 
   vector<Triangle> catTriangles;
-  LoadObject("Objects/Bear/BEAR_KDK.obj", catTriangles);
+  // LoadObject("Objects/Bear/BEAR_KDK.obj", catTriangles);
+  // LoadObject("Objects/Skull/12140_Skull_v3_L2.obj", catTriangles);
+  // LoadObject("Objects/SkullMaya/skull.obj", catTriangles);
+  // LoadObject("Objects/DogMaya/dog.obj", catTriangles);
+  LoadObject("Objects/ContainerMaya/container.obj", catTriangles);
   normaliseTriangles(catTriangles,
                      2.1, 
                      0.6, -0.4, 0.1,
-                     3.15, -0.9, 0,
-                     1, 1, -1);
+                     2, 0, 0,
+                     1, -1, -1);
   triangles.insert( triangles.end(), catTriangles.begin(), catTriangles.end() );
   int catCount = triangles.size();
   // for(int i = sceneCount; i < catCount; i++){
@@ -288,7 +304,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
 
     vertices[0].texturePosition = triangles[i].uv0;
     vertices[1].texturePosition = triangles[i].uv1;
-    vertices[1].texturePosition = triangles[i].uv2;
+    vertices[2].texturePosition = triangles[i].uv2;
 
     GenerateShadowMap(vertices, lightPOVCam, shadowMap);
     DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, light, currentNormal, currentReflectance, triangles[i].hasTexture);
@@ -336,7 +352,7 @@ void Update(Camera &cam, Light &light)
     light.lightPos += vec3(0.02f,0,0);  
     }
     if( keyState[SDL_SCANCODE_RIGHTBRACKET] ){
-    light.lightPos -= vec3(0,0.02f,0);  
+    light.lightPos -= vec3(0,0.02f, 0);  
     }
     if( keyState[SDL_SCANCODE_BACKSLASH] ){
     light.lightPos += vec3(0,0.02f,0);  

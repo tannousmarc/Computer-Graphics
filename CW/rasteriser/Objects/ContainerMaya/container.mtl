@@ -1,0 +1,20 @@
+newmtl _Container_v2_L2:_container
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd 12281_Container_diffuse.jpg
+map_Ka 12281_Container_diffuse.jpg
+Ni 1.50
+Ks 0.10 0.10 0.10
+Ns 55.00
+newmtl _Container_v2_L2:_container_alum
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd 12281_Container_diffuse.jpg
+map_Ka 12281_Container_diffuse.jpg
+Ni 1.50
+Ks 0.72 0.72 0.72
+Ns 80.00

@@ -1,0 +1,10 @@
+newmtl _Dog_v1_L2:Dog
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Dog_diffuse.jpg
+map_Ka Dog_diffuse.jpg
+Ni 1.50
+Ks 0.09 0.09 0.09
+Ns 10.00

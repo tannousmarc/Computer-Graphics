@@ -468,6 +468,7 @@ namespace objl
 			
 			while (std::getline(file, curline))
 			{
+				// cout << curline << "\n";
 				#ifdef OBJL_CONSOLE_OUTPUT
 				if ((outputIndicator = ((outputIndicator + 1) % outputEveryNth)) == 1)
 				{
