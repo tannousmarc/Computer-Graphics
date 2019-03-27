@@ -34,11 +34,12 @@ struct Light{
   vec3 lightColor;
 };
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 1280
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 640
 #define FULLSCREEN_MODE true
 
 #define BOUNCES_THRESHOLD 10
+#define INDEX_OF_REFRACTION 0.5f
 
 void Update(Camera &cam, Light &light, vec3** pixels, int& samplesSeenSoFar);
 

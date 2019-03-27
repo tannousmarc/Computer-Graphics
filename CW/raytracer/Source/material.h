@@ -3,12 +3,11 @@
 
 
 struct Material{
-  float emission;
   const char* type;
 
   Material() = default;
-  Material(float emission, const char* type):
-    emission(emission), type(type) {};
+  Material(const char* type):
+    type(type) {};
 };
 
 #endif

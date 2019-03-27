@@ -56,7 +56,7 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
     return;
 
   const float russianRoulette = 0.85f;
-  if(depth >= 5 || distribution(generator) > russianRoulette){
+  if (depth >= 5 || distribution(generator) > russianRoulette) {
       Light softShadowLight;
       softShadowLight.lightPos.x = light.lightPos.x + (distribution(generator) * 2 - 1) * 0.1f;
       softShadowLight.lightPos.y = light.lightPos.y;
@@ -78,21 +78,52 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
                       sampledDir.x * rotY.y + sampledDir.y * surfaceNormal.y + sampledDir.z * rotX.y,
                       sampledDir.x * rotY.z + sampledDir.y * surfaceNormal.z + sampledDir.z * rotX.z);
 
-      ray.origin = ray.origin + vec4(rotatedDir, 1) * 0.001f;
-      ray.direction = vec4(rotatedDir, 1);
+      ray.direction = normalize(vec4(rotatedDir, 1));
+      ray.origin = ray.origin + ray.direction * 0.001f;
+
       vec3 tmp(0,0,0);
 
       trace(ray, triangles, depth + 1, tmp, light);
 
-      color = color + (tmp * triangles[intersection.triangleIndex].color);
+      color = color + (tmp * triangles[intersection.triangleIndex].color) * dot(ray.direction, surfaceNormal);
   }
 
-  // if(strcmp(triangles[intersection.triangleIndex].material.type, "specular")){
-  //   float cost = dot(ray.direction, surfaceNormal);
-  //   ray.direction = ray.direction - normalize(surfaceNormal * (cost * 2));
+  else if(strcmp(triangles[intersection.triangleIndex].material.type, "glossy") == 0){
+    float currRefraction = INDEX_OF_REFRACTION;
+		float R0 = (1.0 - currRefraction) / (1.0 + currRefraction);
+		R0 = R0 * R0;
+
+    // inside
+    if(dot(surfaceNormal, ray.direction) > 0){
+      surfaceNormal = surfaceNormal * -1.0f;
+      currRefraction = 1 / currRefraction;
+    }
+		currRefraction = 1 / currRefraction;
+
+    float cost1 = dot(surfaceNormal, ray.direction) * -1.0f;
+    float cost2 = 1.0f - currRefraction * currRefraction * (1.0f - cost1 * cost1);
+    // Schlick approx
+    float Rprob = R0 + (1.0f - R0) * pow(1.0f - cost1, 5.0f);
+    ray.direction = normalize(ray.direction + surfaceNormal * (cost1 * 2.0f));
+    // refraction direction
+		if (cost2 > 0 && distribution(generator) > Rprob) {
+			ray.direction = normalize((ray.direction * currRefraction) + (surfaceNormal * (currRefraction * cost1 - sqrt(cost2))));
+		}
+    // reflection direction
+		else {
+			ray.direction = normalize(ray.direction + surfaceNormal * (cost1 * 2.0f));
+		}
+
+		vec3 tmp(0.f, 0.f, 0.f);
+		trace(ray, triangles, depth + 1, tmp, light);
+		color = color + tmp;
+	}
+
+  // else if(strcmp(triangles[intersection.triangleIndex].material.type, "specular") == 0){
+  //   ray.direction =  normalize(ray.direction - surfaceNormal * (dot(ray.direction, surfaceNormal) * 2.f));
   //   vec3 temp(0,0,0);
   //   trace(ray, triangles, depth + 1, temp, light);
-  //   color = color + temp * rrFactor;
+  //   color = color + temp;
   // }
 }
 

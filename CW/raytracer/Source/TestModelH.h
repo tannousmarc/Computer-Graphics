@@ -20,7 +20,7 @@ public:
 	Material material;
 
 	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color )
-		: v0(v0), v1(v1), v2(v2), color(color), material(Material(0.f, "diffuse"))
+		: v0(v0), v1(v1), v2(v2), color(color), material(Material("diffuse"))
 	{
 		ComputeNormal();
 	}
@@ -113,24 +113,24 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec4( 82,165,225,1);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,white) );
-	triangles.push_back( Triangle(E,F,B,white) );
+	triangles.push_back( Triangle(E,B,A,green, Material("glossy")) );
+	triangles.push_back( Triangle(E,F,B,green, Material("glossy")) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,white) );
-	triangles.push_back( Triangle(F,H,D,white) );
+	triangles.push_back( Triangle(F,D,B,green, Material("glossy")) );
+	triangles.push_back( Triangle(F,H,D,green, Material("glossy")) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,white) );
-	triangles.push_back( Triangle(H,G,C,white) );
+	triangles.push_back( Triangle(H,C,D,green, Material("glossy")) );
+	triangles.push_back( Triangle(H,G,C,green, Material("glossy")) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,white) );
-	triangles.push_back( Triangle(E,A,C,white) );
+	triangles.push_back( Triangle(G,E,C,green, Material("glossy")) );
+	triangles.push_back( Triangle(E,A,C,green, Material("glossy")) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,white) );
-	triangles.push_back( Triangle(G,H,F,white) );
+	triangles.push_back( Triangle(G,F,E,green, Material("glossy")) );
+	triangles.push_back( Triangle(G,H,F,green, Material("glossy")) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
