@@ -96,32 +96,39 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
   }
   else if(strcmp(triangles[intersection.triangleIndex].material.type, "glass") == 0){
     float currRefraction = GLASS_INDEX_OF_REFRACTION;
-		float R0 = (1.0 - currRefraction) / (1.0 + currRefraction);
-		R0 = R0 * R0;
+    // 1.0f is AIR_INDEX_OF_REFRACTION
+    float R0 = (1.0 - currRefraction) / (1.0 + currRefraction);
+    R0 = R0 * R0;
 
-    // inside
+    // we are inside the glass object
     if(dot(surfaceNormal, ray.direction) > 0){
       surfaceNormal *= -1.0f;
       currRefraction = 1 / currRefraction;
     }
-		currRefraction = 1 / currRefraction;
+    currRefraction = 1 / currRefraction;
 
+    // COS THETA 1 MUST BE POSITIVE
     float cost1 = dot(surfaceNormal, ray.direction) * -1.0f;
     float cost2 = 1.0f - currRefraction * currRefraction * (1.0f - cost1 * cost1);
-    // Schlick approx
-    float Rprob = R0 + (1.0f - R0) * pow(1.0f - cost1, 5.0f);
-    // refraction direction
-		if (cost2 > 0 && distribution(generator) > Rprob) {
-			ray.direction = normalize((ray.direction * currRefraction) + (surfaceNormal * (currRefraction * cost1 - sqrt(cost2))));
-		}
-    // reflection direction
-		else {
-			ray.direction = normalize(ray.direction + surfaceNormal * (cost1 * 2.0f));
-		}
 
-		vec3 tmp(0.f, 0.f, 0.f);
-		trace(ray, triangles, depth + 1, tmp, light);
-		color = color + tmp;
+    // Schlick approximation for approximating the contribution of the Fresnel factor in the
+    // specular reflection of light from a non-conducting interface (surface) between two media.
+    float Rprob = R0 + (1.0f - R0) * pow(1.0f - cost1, 5.0f);
+
+    // refraction direction
+    if (cost2 > 0 && distribution(generator) > Rprob) {
+        // Snell's law vector from
+        ray.direction = normalize((ray.direction * currRefraction) + (surfaceNormal * (currRefraction * cost1 - sqrt(cost2))));
+    }
+    // reflection direction
+    else {
+        // Snell's law vector from
+        ray.direction = normalize(ray.direction + surfaceNormal * (cost1 * 2.0f));
+    }
+
+    vec3 tmp(0.f, 0.f, 0.f);
+    trace(ray, triangles, depth + 1, tmp, light);
+    color = color + tmp;
 	}
 
   else if(strcmp(triangles[intersection.triangleIndex].material.type, "specular") == 0){
