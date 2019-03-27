@@ -34,19 +34,14 @@ struct Light{
   vec3 lightColor;
 };
 
-#define SCREEN_WIDTH 1024
-#define SCREEN_HEIGHT 1024
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 1280
 #define FULLSCREEN_MODE true
 
-#define SOFT_SHADOW_DISPLACEMENT 0
-#define ANTIALIASING_MODE false
 #define BOUNCES_THRESHOLD 10
-#define SAMPLES_PER_PIXEL 250.0f
 
-#define INDIRECT_LIGHT_FACTOR 0.25f
+void Update(Camera &cam, Light &light, vec3** pixels, int& samplesSeenSoFar);
 
-void Update(Camera& cam, Light &light);
-
-void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light);
+void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light, vec3** pixels, int& samplesSeenSoFar);
 
 #endif

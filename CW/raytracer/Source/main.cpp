@@ -30,10 +30,17 @@ int main(int argc, char* argv[])
   Light light;
   reset_light(light);
 
+  vec3 **pixels = new vec3*[SCREEN_WIDTH];
+  for(int i = 0; i < SCREEN_WIDTH; i++)
+    pixels[i] = new vec3[SCREEN_HEIGHT];
+
+  int samplesSeenSoFar;
+  reset_evolutionModel(pixels, samplesSeenSoFar);
+
   while( NoQuitMessageSDL() )
     {
-      Update(cam, light);
-      Draw(screen, triangles, cam, light);
+      Update(cam, light, pixels, samplesSeenSoFar);
+      Draw(screen, triangles, cam, light, pixels, samplesSeenSoFar);
       SDL_Renderframe(screen);
     }
 
@@ -89,7 +96,7 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
   // }
 }
 
-void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light)
+void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light, vec3** pixels, int& samplesSeenSoFar)
 {
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
@@ -98,30 +105,39 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
   vec3 color;
   Ray ray;
 
+  samplesSeenSoFar++;
+
   #pragma omp parallel for private(inter, d, ray, color)
   for(int x = 0; x < SCREEN_WIDTH; x++){
     for(int y = 0; y < SCREEN_HEIGHT; y++){
       vec3 pixel(0,0,0);
-      for(int s = 0; s < SAMPLES_PER_PIXEL; s++){
-        vec3 color(0,0,0);
-        Ray ray;
-        d.x = (x - screen->width/2) + (distribution(generator) * 2 - 1) * 0.1;
-        d.y = (y - screen->height/2) + (distribution(generator) * 2 - 1) * 0.1;
-        d.z = cam.focalLength;
-        ray.origin = cam.cameraPos;
-        ray.direction = cam.cameraRotationX * cam.cameraRotationY * d;
-        trace(ray, triangles, 0, color, light);
-        pixel += color;
-      }
-      PutPixelSDL(screen, x, y, pixel / (SAMPLES_PER_PIXEL * (1 / (2 * 3.1415f))));
+      vec3 color(0,0,0);
+      Ray ray;
+      d.x = (x - screen->width/2) + (distribution(generator) * 2 - 1) * 0.1;
+      d.y = (y - screen->height/2) + (distribution(generator) * 2 - 1) * 0.1;
+      d.z = cam.focalLength;
+      ray.origin = cam.cameraPos;
+      ray.direction = cam.cameraRotationX * cam.cameraRotationY * d;
+      trace(ray, triangles, 0, color, light);
+
+      // TODO: This could overflow really fast
+      pixels[x][y] += color;
     }
   }
+
+  for(int x = 0; x < SCREEN_WIDTH; x++){
+    for(int y = 0; y < SCREEN_HEIGHT; y++){
+        PutPixelSDL(screen, x, y, pixels[x][y] / (samplesSeenSoFar * (1 / (2 * 3.1415f))));
+    }
+  }
+
+
 
 
 }
 
 /*Place updates of parameters here*/
-void Update(Camera &cam, Light &light)
+void Update(Camera &cam, Light &light, vec3** pixels, int& samplesSeenSoFar)
 {
   static int t = SDL_GetTicks();
   /* Compute frame time */
@@ -129,9 +145,9 @@ void Update(Camera &cam, Light &light)
   float dt = float(t2-t);
   t = t2;
   /*Good idea to remove this*/
-  std::cout << "Render time: " << dt << " ms." << std::endl;
+  std::cout << "Sample #" << samplesSeenSoFar << " rendered in: " << dt << " ms." << std::endl;
   /* Update variables*/
 
-  handleKeyboard(cam, light);
+  handleKeyboard(cam, light, pixels, samplesSeenSoFar);
 
 }
