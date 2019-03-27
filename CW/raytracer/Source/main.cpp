@@ -48,9 +48,15 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
   if(closestIntersection(ray, triangles, intersection) == false)
     return;
 
-  const float rrStopProbability = 0.9f;
-  if(depth >= 5 || distribution(generator) > rrStopProbability){
-      color = triangles[intersection.triangleIndex].color * directLight(triangles, intersection, light);
+  const float russianRoulette = 0.85f;
+  if(depth >= 5 || distribution(generator) > russianRoulette){
+      Light softShadowLight;
+      softShadowLight.lightPos.x = light.lightPos.x + (distribution(generator) * 2 - 1) * 0.15f;
+      softShadowLight.lightPos.y = light.lightPos.y;
+      softShadowLight.lightPos.z = light.lightPos.z + (distribution(generator) * 2 - 1) * 0.15f;
+      softShadowLight.lightPos.w = light.lightPos.w;
+      softShadowLight.lightColor = light.lightColor;
+      color = triangles[intersection.triangleIndex].color * directLight(triangles, intersection, softShadowLight);
       return;
   }
 
@@ -67,7 +73,6 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
 
       ray.origin = ray.origin + vec4(rotatedDir, 1) * 0.001f;
       ray.direction = vec4(rotatedDir, 1);
-      float cost = dot(ray.direction, surfaceNormal);
       vec3 tmp(0,0,0);
 
       trace(ray, triangles, depth + 1, tmp, light);
