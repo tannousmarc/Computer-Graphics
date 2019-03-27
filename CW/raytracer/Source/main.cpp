@@ -58,9 +58,9 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
   const float russianRoulette = 0.85f;
   if(depth >= 5 || distribution(generator) > russianRoulette){
       Light softShadowLight;
-      softShadowLight.lightPos.x = light.lightPos.x + (distribution(generator) * 2 - 1) * 0.15f;
+      softShadowLight.lightPos.x = light.lightPos.x + (distribution(generator) * 2 - 1) * 0.1f;
       softShadowLight.lightPos.y = light.lightPos.y;
-      softShadowLight.lightPos.z = light.lightPos.z + (distribution(generator) * 2 - 1) * 0.15f;
+      softShadowLight.lightPos.z = light.lightPos.z + (distribution(generator) * 2 - 1) * 0.1f;
       softShadowLight.lightPos.w = light.lightPos.w;
       softShadowLight.lightColor = light.lightColor;
       color = triangles[intersection.triangleIndex].color * directLight(triangles, intersection, softShadowLight);
