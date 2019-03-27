@@ -87,15 +87,21 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
 
       color = color + (tmp * triangles[intersection.triangleIndex].color) * dot(ray.direction, surfaceNormal);
   }
-
-  else if(strcmp(triangles[intersection.triangleIndex].material.type, "glossy") == 0){
-    float currRefraction = INDEX_OF_REFRACTION;
+  else if(strcmp(triangles[intersection.triangleIndex].material.type, "mirror") == 0){
+    float cost1 = dot(surfaceNormal, ray.direction) * -1.0f;
+    ray.direction = normalize(ray.direction + surfaceNormal * (cost1 * 2.0f));
+    vec3 tmp(0.f, 0.f, 0.f);
+		trace(ray, triangles, depth + 1, tmp, light);
+		color = color + tmp;
+  }
+  else if(strcmp(triangles[intersection.triangleIndex].material.type, "glass") == 0){
+    float currRefraction = GLASS_INDEX_OF_REFRACTION;
 		float R0 = (1.0 - currRefraction) / (1.0 + currRefraction);
 		R0 = R0 * R0;
 
     // inside
     if(dot(surfaceNormal, ray.direction) > 0){
-      surfaceNormal = surfaceNormal * -1.0f;
+      surfaceNormal *= -1.0f;
       currRefraction = 1 / currRefraction;
     }
 		currRefraction = 1 / currRefraction;
@@ -104,7 +110,6 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
     float cost2 = 1.0f - currRefraction * currRefraction * (1.0f - cost1 * cost1);
     // Schlick approx
     float Rprob = R0 + (1.0f - R0) * pow(1.0f - cost1, 5.0f);
-    ray.direction = normalize(ray.direction + surfaceNormal * (cost1 * 2.0f));
     // refraction direction
 		if (cost2 > 0 && distribution(generator) > Rprob) {
 			ray.direction = normalize((ray.direction * currRefraction) + (surfaceNormal * (currRefraction * cost1 - sqrt(cost2))));
@@ -119,12 +124,12 @@ void trace(Ray &ray, const vector<Triangle>& triangles, int depth, vec3& color, 
 		color = color + tmp;
 	}
 
-  // else if(strcmp(triangles[intersection.triangleIndex].material.type, "specular") == 0){
-  //   ray.direction =  normalize(ray.direction - surfaceNormal * (dot(ray.direction, surfaceNormal) * 2.f));
-  //   vec3 temp(0,0,0);
-  //   trace(ray, triangles, depth + 1, temp, light);
-  //   color = color + temp;
-  // }
+  else if(strcmp(triangles[intersection.triangleIndex].material.type, "specular") == 0){
+    ray.direction =  normalize(ray.direction - surfaceNormal * (dot(ray.direction, surfaceNormal) * 2.f));
+    vec3 temp(0,0,0);
+    trace(ray, triangles, depth + 1, temp, light);
+    color = color + temp;
+  }
 }
 
 void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light, vec3** pixels, int& samplesSeenSoFar)
