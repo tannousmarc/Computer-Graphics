@@ -48,14 +48,20 @@ struct Light{
   vec3 indirectLightPowerPerArea;
 };
 
+struct RenderedObject{
+  string texture_name;
+  vector<Triangle> triangles;
+  SDL_Surface* texture_surface;
+};
 
 
-#define SCREEN_WIDTH 1024
-#define SCREEN_HEIGHT 640
+
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 1280
 #define FULLSCREEN_MODE true
 
 void Update(Camera &cam, Light &light);
-void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light);
+void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& objects, Camera cam, Light light);
 
 // struct Intersection
 // {

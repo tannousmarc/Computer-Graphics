@@ -4,9 +4,16 @@
 #include <stdint.h>
 // #include <omp.h>
 #include "OBJ_Loader.h"
-SDL_Surface *textureSurface;
+#include "FXAA.cpp"
 
 // OMP_NUM_THREADS
+
+vec3 currentPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
+int currentMinimumX = 0, currentMinimumY = 0;
+int currentMaximumX = SCREEN_HEIGHT, currentMaximumY = SCREEN_WIDTH;
+int doAntiAliasing = -1;
+vec3 zero(0, 0, 0);
+
 void VertexShader(const Vertex& v, Pixel& p, Camera cam){
   vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY * cam.cameraRotationZ);
   p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
@@ -28,7 +35,14 @@ void PixelShader(const Pixel& p, vec3 color, screen* screen, float depthBuffer[S
 
   if(p.zinv > depthBuffer[p.y][p.x]){
     depthBuffer[p.y][p.x] = p.zinv;
-    PutPixelSDL(screen, p.x, p.y, illumination * color);
+    // PutPixelSDL(screen, p.x, p.y, illumination * color);
+    if(p.x >= 0 && p.x < SCREEN_HEIGHT && p.y >= 0 && p.y < SCREEN_WIDTH){
+      currentPixels[p.x][p.y] = (illumination * color);
+      currentMaximumX = std::max(currentMaximumX, p.x + 1);
+      currentMaximumY = std::max(currentMaximumY, p.y + 1);
+      currentMinimumX = std::min(currentMinimumX, p.x);
+      currentMinimumY = std::min(currentMinimumY, p.y);
+    }
   }
 }
 
@@ -103,7 +117,7 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
 //    }
 //  }
 
- void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance, bool hasTexture){
+ void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance, bool hasTexture, SDL_Surface* texture_surface){
    int V = vertices.size();
    vector<Pixel> vertexPixels(V);
    for(int i = 0; i < V; i++){
@@ -124,6 +138,7 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
      minY = std::min(minY, vertexPixels[i].y);
    }
 
+  //  cout << minX << " " << maxX << "    " << minY << " " << maxY << endl;
    for(int y = minY; y < maxY; y++){
      if(y >= SCREEN_HEIGHT || y < 0)
       continue;
@@ -153,19 +168,11 @@ void interpolateLine(Pixel a, Pixel b, vector<Pixel> &line) {
        if (0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1){
         tPixel.zinv = vertexPixels[1].zinv*a + vertexPixels[2].zinv*b + vertexPixels[0].zinv*c;
         tPixel.pos3d = (vertexPixels[1].pos3d * vertexPixels[1].zinv*a + vertexPixels[2].pos3d * vertexPixels[2].zinv*b + vertexPixels[0].pos3d * vertexPixels[0].zinv*c) / tPixel.zinv;
-        if(hasTexture){
-          // color = (
-          //           (getTextureAt(textureSurface, vertexPixels[0].textureX + v0.x, vertexPixels[0].textureY + v0.y) * a) +
-          //           (getTextureAt(textureSurface, vertexPixels[1].textureX + v1.x, vertexPixels[1].textureY + v1.y) * b) +
-          //           (getTextureAt(textureSurface, vertexPixels[2].textureX + v2.x, vertexPixels[2].textureY + v2.y) * c)
-          //         );
-          // cout << vertexPixels[0].textureX << " " << vertexPixels[0].textureY << " " <<
-          //   vertexPixels[1].textureX << " " << vertexPixels[1].textureY << " " <<
-          //   vertexPixels[2].textureX << " " << vertexPixels[2].textureY << " " << endl;
+        if(hasTexture && texture_surface != NULL){
           color = (
-                    (getTextureAt(textureSurface, vertexPixels[0].textureX, vertexPixels[0].textureY) * a) +
-                    (getTextureAt(textureSurface, vertexPixels[1].textureX, vertexPixels[1].textureY) * b) +
-                    (getTextureAt(textureSurface, vertexPixels[2].textureX, vertexPixels[2].textureY) * c)
+                    (getTextureAt(texture_surface, vertexPixels[0].textureX, vertexPixels[0].textureY) * a) +
+                    (getTextureAt(texture_surface, vertexPixels[1].textureX, vertexPixels[1].textureY) * b) +
+                    (getTextureAt(texture_surface, vertexPixels[2].textureX, vertexPixels[2].textureY) * c)
                   );
         }
         PixelShader(tPixel, color, screen, depthBuffer, light, normal, reflectance);
@@ -186,78 +193,34 @@ int main( int argc, char* argv[] )
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   SDL_SetRelativeMouseMode(SDL_TRUE);
 
-  // textureSurface = SDL_LoadBMP("Textures/sah.bmp");
-  // textureSurface = SDL_LoadBMP("Objects/Bear/bear_kdk.bmp");
-  // textureSurface = SDL_LoadBMP("Objects/DogMaya/Dog_diffuse.bmp");
-  // textureSurface = SDL_LoadBMP("Objects/Skull/Skull.bmp");
-  textureSurface = SDL_LoadBMP("Objects/ContainerMaya/12281_Container_diffuse.bmp");
   vector<Triangle> triangles;
-
   srand(time(NULL));
-  // vec2 firstVec(rand() % 256, rand()%256);
-  // vec2 secondVec(rand() % 256, rand()%256);
-  // vec2 thirdVec(rand() % 256, rand()%256);
-  vec2 firstVec(350, 0);
-  vec2 secondVec(500, 0);
-  vec2 thirdVec(0, 500);
+
   LoadTestModel(triangles);
   int sceneCount = triangles.size();
   for(int i = 0; i < sceneCount; i++){
     triangles[i].hasTexture = false;
   }
-  // vector<Triangle> wolfTriangles;
-  // LoadObject("wolf.obj", wolfTriangles);
-  // normaliseTriangles(wolfTriangles,
-  //                    2.1, 
+
+  vector<RenderedObject> objects;
+  // RenderedObject temple = LoadObject("Objects/Temple/temple.obj");
+  // normaliseTriangles(temple.triangles,
+  //                    1.4, 
   //                    0.6, -0.4, 0.1,
-  //                    3.15, -0.9, 0,
-  //                    -1, 1, 1);
-  // triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
+  //                    3.1, 0, 0,
+  //                    1, -1, -1);
+  // temple.texture_surface = SDL_LoadBMP("Objects/Temple/temple.bmp");
+  // objects.push_back(temple);
 
-  // int wolfCount = triangles.size();
-  // for(int i = sceneCount; i < wolfCount; i++){
-  //   triangles[i].hasTexture = false;
-  //   triangles[i].set_uvs(firstVec, secondVec, thirdVec);
-  // }
-  // wolfTriangles.clear();
-
-  // vector<Triangle> dogTriangles;
-  // LoadObject("12228_Dog_v1_L2.obj", dogTriangles);
-  // vector<Triangle> deerTriangles;
-  // LoadObject("deer.obj", deerTriangles);
-  // normaliseTriangles(deerTriangles,
-  //                    1.2, 
-  //                    0.8, -0.99, 0.1,
-  //                    3.14, -2.15, 0,
-  //                    -1 , 1, -1);
-  // triangles.insert( triangles.end(), deerTriangles.begin(), deerTriangles.end() );
-  // int deerCount = triangles.size();
-  //  for(int i = sceneCount; i < deerCount; i++){
-  //   triangles[i].hasTexture = false;
-  //   triangles[i].set_uvs(firstVec, secondVec, thirdVec);
-  // }
-  // deerTriangles.clear();
-
-  vector<Triangle> catTriangles;
-  // LoadObject("Objects/Bear/BEAR_KDK.obj", catTriangles);
-  // LoadObject("Objects/Skull/12140_Skull_v3_L2.obj", catTriangles);
-  // LoadObject("Objects/SkullMaya/skull.obj", catTriangles);
-  // LoadObject("Objects/DogMaya/dog.obj", catTriangles);
-  LoadObject("Objects/ContainerMaya/container.obj", catTriangles);
-  normaliseTriangles(catTriangles,
-                     2.1, 
+  RenderedObject dog = LoadObject("Objects/DogMaya/dog.obj");
+  normaliseTriangles(dog.triangles,
+                     1.4, 
                      0.6, -0.4, 0.1,
-                     2, 0, 0,
+                     1.8f, 0, 0,
                      1, -1, -1);
-  triangles.insert( triangles.end(), catTriangles.begin(), catTriangles.end() );
-  int catCount = triangles.size();
-  // for(int i = sceneCount; i < catCount; i++){
-  //   triangles[i].hasTexture = false;
-  //   triangles[i].set_uvs(firstVec, secondVec, thirdVec);
-  // }
-
-
-
+  dog.texture_surface = SDL_LoadBMP("Objects/DogMaya/Dog_diffuse.bmp");
+  objects.push_back(dog);
+                       
   Camera cam;
   reset_camera(cam);
 
@@ -266,7 +229,7 @@ int main( int argc, char* argv[] )
   while (NoQuitMessageSDL())
     {
       Update(cam, light);
-      Draw(screen, triangles, cam, light);
+      Draw(screen, triangles, objects, cam, light);
       SDL_Renderframe(screen);
     }
 
@@ -276,8 +239,18 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
-void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
+void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& objects, Camera cam, Light light)
 {
+
+  // for(int i = 0; i < SCREEN_HEIGHT; i++){
+  //     for(int j = 0; j < SCREEN_WIDTH; j++){
+  //       currentPixels[i][j] = vec3(0, 0, 0);
+  //     }
+  // }
+  currentMaximumX = -numeric_limits<int>::max(); 
+  currentMinimumX = numeric_limits<int>::max();;
+  currentMaximumY = -numeric_limits<int>::max();
+  currentMinimumY = numeric_limits<int>::max();;
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
   float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -285,6 +258,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
     for(int x = 0; x < SCREEN_WIDTH; x++){
       depthBuffer[y][x] = 0.0f;
       shadowMap[y][x] = 0.0f;
+      currentPixels[y][x] = zero;
     }
   }
 
@@ -307,8 +281,33 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera cam, Light light)
     vertices[2].texturePosition = triangles[i].uv2;
 
     GenerateShadowMap(vertices, lightPOVCam, shadowMap);
-    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, light, currentNormal, currentReflectance, triangles[i].hasTexture);
+    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, light, currentNormal, currentReflectance, triangles[i].hasTexture, NULL);
   }
+
+    for(uint32_t i = 0; i < objects.size(); i++){
+      for(uint32_t j = 0; j < objects[i].triangles.size(); j++){
+      vec4 currentNormal = objects[i].triangles[j].normal;
+      vec3 currentReflectance(1,1,1);
+
+      vector<Vertex> vertices(3);
+      vertices[0].position = objects[i].triangles[j].v0;
+      vertices[1].position = objects[i].triangles[j].v1;
+      vertices[2].position = objects[i].triangles[j].v2;
+
+      vertices[0].texturePosition = objects[i].triangles[j].uv0;
+      vertices[1].texturePosition = objects[i].triangles[j].uv1;
+      vertices[2].texturePosition = objects[i].triangles[j].uv2;
+
+      GenerateShadowMap(vertices, lightPOVCam, shadowMap);
+      DrawPolygon(screen, vertices, cam, objects[i].triangles[j].color, depthBuffer, light, currentNormal, currentReflectance, objects[i].triangles[j].hasTexture, objects[i].texture_surface);
+      }
+    }
+
+    for(int i = currentMinimumX; i < currentMaximumX; i++){
+      for(int j = currentMinimumY; j < currentMaximumY; j++){
+        PutPixelSDL(screen, i, j, doAntiAliasing == 1 ? getAliasedPixel(currentPixels, i, j) : currentPixels[i][j]);
+      }
+    }
 }
 
 void Update(Camera &cam, Light &light)
@@ -356,6 +355,12 @@ void Update(Camera &cam, Light &light)
     }
     if( keyState[SDL_SCANCODE_BACKSLASH] ){
     light.lightPos += vec3(0,0.02f,0);  
+    }
+    if( keyState[SDL_SCANCODE_H] ){
+      doAntiAliasing = 1;
+    }
+    if( keyState[SDL_SCANCODE_J] ){
+      doAntiAliasing = -1;
     }
 
 
