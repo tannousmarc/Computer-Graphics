@@ -147,12 +147,12 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec4(314,330,456,1);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,black,Material("mirror")) );
-	triangles.push_back( Triangle(E,F,B,black,Material("mirror")) );
+	triangles.push_back( Triangle(E,B,A,white) );
+	triangles.push_back( Triangle(E,F,B,white) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,black,Material("mirror")) );
-	triangles.push_back( Triangle(F,H,D,black,Material("mirror")) );
+	triangles.push_back( Triangle(F,D,B,white) );
+	triangles.push_back( Triangle(F,H,D,white) );
 
 	// BACK
 	triangles.push_back( Triangle(H,C,D,white) );

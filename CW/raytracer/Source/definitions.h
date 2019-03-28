@@ -34,12 +34,17 @@ struct Light{
   vec3 lightColor;
 };
 
-#define SCREEN_WIDTH 480
-#define SCREEN_HEIGHT 480
+// Helpers for random generation
+std::default_random_engine generator;
+std::uniform_real_distribution<float> distribution(0, 1);
+
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 1280
 #define FULLSCREEN_MODE true
 
-#define BOUNCES_THRESHOLD 10
+#define MAX_DEPTH 5
 #define GLASS_INDEX_OF_REFRACTION 1.512f
+#define AIR_INDEX_OF_REFRACTION 1.000f
 
 void Update(Camera &cam, Light &light, vec3** pixels, int& samplesSeenSoFar);
 
