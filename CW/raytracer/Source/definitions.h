@@ -26,7 +26,9 @@ struct Intersection
 {
   vec4 position;
   float distance;
-  int triangleIndex;
+  vec3 color;
+  vec4 normal;
+  Material material;
 };
 
 struct Light{
@@ -43,11 +45,15 @@ std::uniform_real_distribution<float> distribution(0, 1);
 #define FULLSCREEN_MODE true
 
 #define MAX_DEPTH 5
+
+#define EPSILON 1e-6
 #define GLASS_INDEX_OF_REFRACTION 1.512f
 #define AIR_INDEX_OF_REFRACTION 1.000f
 
+#include "sphere.h"
+
 void Update(Camera &cam, Light &light, vec3** pixels, int& samplesSeenSoFar);
 
-void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light, vec3** pixels, int& samplesSeenSoFar);
+void Draw(screen* screen, vector<Triangle>& triangles, vector<Sphere>& spheres, Camera& cam, Light& light, vec3** pixels, int& samplesSeenSoFar);
 
 #endif

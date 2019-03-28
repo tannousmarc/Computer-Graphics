@@ -1,8 +1,9 @@
 #include "intersections.h"
 #include "definitions.h"
 #include "ray.h"
+#include "sphere.h"
 
-bool closestIntersection(const Ray &ray, const vector<Triangle>& triangles,
+bool closestIntersection(const Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres,
                          Intersection& closestIntersection){
   float minimumDistance = std::numeric_limits<float>::max();
   bool okay = false;
@@ -27,9 +28,26 @@ bool closestIntersection(const Ray &ray, const vector<Triangle>& triangles,
         minimumDistance = abs(x.x);
         closestIntersection.position = v0 + x.y*vec4(e1.x, e1.y, e1.z, 0) + x.z*vec4(e2.x, e2.y, e2.z, 0);
         closestIntersection.distance = abs(x.x);
-        closestIntersection.triangleIndex = i;
+        closestIntersection.color = triangles[i].color;
+        closestIntersection.normal = triangles[i].normal;
+        closestIntersection.material = triangles[i].material;
         okay = true;
       }
+    }
+  }
+
+  for(unsigned int i = 0; i < spheres.size(); i++){
+    Intersection result;
+    bool valid = spheres[i].intersect(ray, result);
+    if(valid && result.distance >= EPSILON && result.distance <= minimumDistance){
+
+      minimumDistance = result.distance;
+      closestIntersection.position = result.position;
+      closestIntersection.distance = result.distance;
+      closestIntersection.color = result.color;
+      closestIntersection.normal = result.normal;
+      closestIntersection.material = result.material;
+      okay = true;
     }
   }
 
@@ -41,8 +59,6 @@ bool existsIntersection(const Ray &ray, const vector<Triangle>& triangles,
   bool okay = false;
 
   for(unsigned int i = 0; i < triangles.size(); i++){
-    if((int) i == inter.triangleIndex)
-      continue;
     Triangle triangle = triangles[i];
     vec4 v0 = triangle.v0;
     vec4 v1 = triangle.v1;

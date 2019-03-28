@@ -1,6 +1,7 @@
 /*
   Extensions:
               Kramer's rule
+              OpenMP parallelization
               Path tracing:
                 Anti aliasing
                 Soft shadows
@@ -34,11 +35,14 @@
 #include "utils.cpp"
 #include "ray.h"
 #include "pathtracer.cpp"
+#include "sphere.cpp"
 
 int main(int argc, char* argv[])
 {
   srand (time(NULL));
   vector<Triangle> triangles;
+  vector<Sphere> spheres;
+  spheres.push_back(Sphere(0.36f, vec4(0.4,0.64,-0.65,1), vec3(1,0,0), Material("glass")));
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
   Camera cam;
@@ -56,7 +60,7 @@ int main(int argc, char* argv[])
   while( NoQuitMessageSDL() )
     {
       Update(cam, light, pixels, samplesSeenSoFar);
-      Draw(screen, triangles, cam, light, pixels, samplesSeenSoFar);
+      Draw(screen, triangles, spheres, cam, light, pixels, samplesSeenSoFar);
       SDL_Renderframe(screen);
     }
 
@@ -67,7 +71,7 @@ int main(int argc, char* argv[])
 }
 
 
-void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light, vec3** pixels, int& samplesSeenSoFar)
+void Draw(screen* screen, vector<Triangle>& triangles,  vector<Sphere>& spheres, Camera& cam, Light& light, vec3** pixels, int& samplesSeenSoFar)
 {
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
@@ -92,7 +96,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light
       ray.origin = cam.cameraPos;
       ray.direction = cam.cameraRotationX * cam.cameraRotationY * d;
 
-      trace(ray, triangles, 0, color, light);
+      trace(ray, triangles, spheres, 0, color, light);
       // TODO: This could overflow really fast
       pixels[x][y] += color;
     }
