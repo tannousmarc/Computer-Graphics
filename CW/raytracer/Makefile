@@ -1,4 +1,5 @@
 FILE=main
+FILE2=test
 
 ########
 #   Directories
@@ -7,10 +8,10 @@ B_DIR=Build
 
 ########
 #   Output
-EXEC=$(B_DIR)/$(FILE)
+EXEC=$(B_DIR)/$(FILE2)
 
 # default build settings
-CC_OPTS=-c -fopenmp -std=c++11 -pipe -Wall -Wno-switch -ggdb -g3
+CC_OPTS=-c -fopenmp -std=c++11 -Wall -pipe -Wno-switch -ggdb -g3
 LN_OPTS=-fopenmp
 CC=g++ -Ofast
 

@@ -18,6 +18,12 @@ public:
 	glm::vec3 color;
 	Material material;
 
+	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, glm::vec4 normal )
+		: v0(v0), v1(v1), v2(v2), color(color), normal(normal), material(Material("diffuse"))
+	{
+
+	}
+
 	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color )
 		: v0(v0), v1(v1), v2(v2), color(color), material(Material("diffuse"))
 	{
@@ -101,7 +107,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 
 	// ---------------------------------------------------------------------------
 	// Short block
-
+	//
 	// A = vec4(290,0,114,1);
 	// B = vec4(130,0, 65,1);
 	// C = vec4(240,0,272,1);
@@ -113,45 +119,45 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	// H = vec4( 82,165,225,1);
 	//
 	// // Front
-	// triangles.push_back( Triangle(E,B,A,white) );
-	// triangles.push_back( Triangle(E,F,B,white) );
+	// triangles.push_back( Triangle(E,B,A,blue, Material("glass")) );
+	// triangles.push_back( Triangle(E,F,B,blue, Material("glass")) );
 	//
 	// // Front
-	// triangles.push_back( Triangle(F,D,B,white) );
-	// triangles.push_back( Triangle(F,H,D,white) );
+	// triangles.push_back( Triangle(F,D,B,blue, Material("glass")) );
+	// triangles.push_back( Triangle(F,H,D,blue, Material("glass")) );
 	//
 	// // BACK
-	// triangles.push_back( Triangle(H,C,D,white) );
-	// triangles.push_back( Triangle(H,G,C,white) );
+	// triangles.push_back( Triangle(H,C,D,blue, Material("glass")) );
+	// triangles.push_back( Triangle(H,G,C,blue, Material("glass")) );
 	//
 	// // LEFT
-	// triangles.push_back( Triangle(G,E,C,white) );
-	// triangles.push_back( Triangle(E,A,C,white) );
+	// triangles.push_back( Triangle(G,E,C,blue, Material("glass")) );
+	// triangles.push_back( Triangle(E,A,C,blue, Material("glass")) );
 	//
 	// // TOP
-	// triangles.push_back( Triangle(G,F,E,white) );
-	// triangles.push_back( Triangle(G,H,F,white) );
+	// triangles.push_back( Triangle(G,F,E,blue, Material("glass")) );
+	// triangles.push_back( Triangle(G,H,F,blue, Material("glass")) );
 	//
 	// // ---------------------------------------------------------------------------
 	// // Tall block
 	//
-	// A = vec4(423,0,247,1);
-	// B = vec4(265,0,296,1);
+	// A = vec4(323,0,347,1);
+	// B = vec4(165,0,396,1);
 	// C = vec4(472,0,406,1);
 	// D = vec4(314,0,456,1);
 	//
-	// E = vec4(423,330,247,1);
-	// F = vec4(265,330,296,1);
+	// E = vec4(323,330,347,1);
+	// F = vec4(165,330,396,1);
 	// G = vec4(472,330,406,1);
 	// H = vec4(314,330,456,1);
-	//
+	// //
 	// // Front
-	// triangles.push_back( Triangle(E,B,A,white) );
-	// triangles.push_back( Triangle(E,F,B,white) );
-	//
-	// // Front
-	// triangles.push_back( Triangle(F,D,B,white) );
-	// triangles.push_back( Triangle(F,H,D,white) );
+	// triangles.push_back( Triangle(E,B,A,black, Material("mirror")) );
+	// triangles.push_back( Triangle(E,F,B,black, Material("mirror")) );
+
+	// Front
+	// triangles.push_back( Triangle(F,D,B,black, Material("mirror")) );
+	// triangles.push_back( Triangle(F,H,D,black, Material("mirror")) );
 	//
 	// // BACK
 	// triangles.push_back( Triangle(H,C,D,white) );

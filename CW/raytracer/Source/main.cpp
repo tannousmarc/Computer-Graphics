@@ -36,19 +36,29 @@
 #include "ray.h"
 #include "pathtracer.cpp"
 #include "sphere.cpp"
+#include "parser.cpp"
 
 int main(int argc, char* argv[])
 {
   srand (time(NULL));
   vector<Triangle> triangles;
   vector<Sphere> spheres;
-  spheres.push_back(Sphere(0.36f, vec4(0.4,0.64,-0.65,1), vec3(1,0,0), Material("glass")));
+  // spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
   Camera cam;
   reset_camera(cam);
   Light light;
   reset_light(light);
+
+  // vector<Triangle> wolfTriangles;
+  // LoadObject("Objects/wolf.obj", triangles);
+  // normaliseTriangles(wolfTriangles,
+  //                    1.1,
+  //                    0.6, -0.4, 0.1,
+  //                    1.8f, 0, 0,
+  //                    1, -1, -1);
+  // triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
 
   vec3 **pixels = new vec3*[SCREEN_WIDTH];
   for(int i = 0; i < SCREEN_WIDTH; i++)

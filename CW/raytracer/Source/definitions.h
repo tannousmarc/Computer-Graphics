@@ -40,11 +40,11 @@ struct Light{
 std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0, 1);
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 1280
+#define SCREEN_WIDTH 480
+#define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE true
 
-#define MAX_DEPTH 5
+#define MAX_DEPTH 7
 
 #define EPSILON 1e-6
 #define GLASS_INDEX_OF_REFRACTION 1.512f
