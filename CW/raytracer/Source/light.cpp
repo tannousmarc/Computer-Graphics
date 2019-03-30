@@ -4,10 +4,10 @@
 
 // resets light source to default values
 void reset_light(Light &light){
-  // light.lightPos = vec4(0, -0.5, -0.7, 1.0);
-  // light.lightColor = 14.0f * vec3(1, 1, 1);
-  light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
-light.lightColor = 14.0f * vec3(1, 1, 1);
+  light.lightPos = vec4(0, -0.5, -0.7, 1.0);
+  light.lightColor = 14.0f * vec3(1, 1, 1);
+//   light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
+// light.lightColor = 14.0f * vec3(1, 1, 1);
 }
 
 vec3 directLight(const vector<Triangle>& triangles, Intersection& inter, Light light){

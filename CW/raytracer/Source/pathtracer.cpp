@@ -83,7 +83,7 @@ void trace(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& sp
       softShadowLight.lightPos.z = light.lightPos.z + (distribution(generator) * 2 - 1) * 0.1f;
       softShadowLight.lightPos.w = light.lightPos.w;
       softShadowLight.lightColor = light.lightColor;
-      // glass doesn't have a color
+      // glass/mirror doesn't have a color
       if(strcmp(intersection.material.type, "glass") == 0){
         color = directLight(triangles, intersection, softShadowLight);
       }

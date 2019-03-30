@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
   srand (time(NULL));
   vector<Triangle> triangles;
   vector<Sphere> spheres;
-  spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
+  // spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
   Camera cam;
@@ -51,14 +51,15 @@ int main(int argc, char* argv[])
   Light light;
   reset_light(light);
 
-  // vector<Triangle> wolfTriangles;
-  // LoadObject("Objects/wolf.obj", triangles);
-  // normaliseTriangles(wolfTriangles,
-  //                    1.1,
-  //                    0.6, -0.4, 0.1,
-  //                    1.8f, 0, 0,
-  //                    1, -1, -1);
-  // triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
+  vector<Triangle> wolfTriangles;
+  LoadObject("./Objects/wolf.obj", wolfTriangles);
+  normaliseTriangles(wolfTriangles,
+                     1.0,
+                     0, -1, -0.3,
+                     3.15, -2.5, 0,
+                     -1, 1, 1, "glass");
+  printf("wolf: %d", wolfTriangles.size());
+  triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
 
   vec3 **pixels = new vec3*[SCREEN_WIDTH];
   for(int i = 0; i < SCREEN_WIDTH; i++)

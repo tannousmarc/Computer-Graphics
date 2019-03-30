@@ -8,9 +8,11 @@
 void LoadObject(string path, vector<Triangle>& triangles){
     objl::Loader Loader;
     bool loadout = Loader.LoadFile(path);
+    cout<<"Path: "<<path<<endl;
     if(loadout){
         for (int i = 0; i < Loader.LoadedMeshes.size(); i++){
             objl::Mesh curMesh = Loader.LoadedMeshes[i];
+            printf("reading");
             // for (int j = 0; j < curMesh.Vertices.size(); j++)
 			// {
 			// 	cout << "V" << j << ": " <<

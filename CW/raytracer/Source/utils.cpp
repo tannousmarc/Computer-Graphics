@@ -52,7 +52,8 @@ bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, f
 void normaliseTriangles(vector<Triangle>& rawTriangles, float scale = 1,
                         float displacementX = 0, float displacementY = 0, float displacementZ = 0,
                         float rotateX = 0, float rotateY = 0, float rotateZ = 0,
-                        float adjustNormalX = 1, float adjustNormalY = 1, float adjustNormalZ = 1){
+                        float adjustNormalX = 1, float adjustNormalY = 1, float adjustNormalZ = 1,
+                        char* type = "diffuse"){
   float L = -numeric_limits<int>::max();
   for(auto triangle : rawTriangles){
     if(glm::abs(triangle.v0.x) > L){
@@ -134,5 +135,6 @@ void normaliseTriangles(vector<Triangle>& rawTriangles, float scale = 1,
     triangle.normal.y = adjustNormalY * triangle.normal.y;
     triangle.normal.z = adjustNormalZ * triangle.normal.z;
     triangle.normal = rotationMatrix * triangle.normal;
+    triangle.material.type = type;
   }
 }

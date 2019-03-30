@@ -12,6 +12,7 @@ bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, f
 void normaliseTriangles(vector<Triangle>& rawTriangles, float scale,
                         float displacementX, float displacementY, float displacementZ,
                         float rotateX, float rotateY, float rotateZ,
-                        float adjustNormalX, float adjustNormalY, float adjustNormalZ);
+                        float adjustNormalX, float adjustNormalY, float adjustNormalZ,
+                        char* type);
 
 #endif
