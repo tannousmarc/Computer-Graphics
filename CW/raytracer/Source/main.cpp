@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
   srand (time(NULL));
   vector<Triangle> triangles;
   vector<Sphere> spheres;
-  // spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
+  spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
   Camera cam;
@@ -92,7 +92,7 @@ void Draw(screen* screen, vector<Triangle>& triangles,  vector<Sphere>& spheres,
 
   samplesSeenSoFar++;
 
-  #pragma omp parallel for private(inter, d, ray, color)
+  #pragma omp parallel for private(inter, d, ray, color) schedule(dynamic)
   for(int x = 0; x < SCREEN_WIDTH; x++){
     for(int y = 0; y < SCREEN_HEIGHT; y++){
       vec3 pixel(0,0,0);
