@@ -10,11 +10,11 @@
                 Glass material (reflection + refraction)
                 Mirrors
                 Caustics
+                Custom object loader
+                Spheres
   TODO:
-              Custom object loader (DONE in rasterizer)
               Custom texture loader (DONE in rasterizer)
               Textured objects (DONE in rasterizer)
-              Spheres
               Depth of field
               KD trees?
               Bidirectional path tracing?
@@ -51,15 +51,15 @@ int main(int argc, char* argv[])
   Light light;
   reset_light(light);
 
-  vector<Triangle> wolfTriangles;
-  LoadObject("./Objects/wolf.obj", wolfTriangles);
-  normaliseTriangles(wolfTriangles,
-                     1.0,
-                     0, -1, -0.3,
-                     3.15, -2.5, 0,
-                     -1, 1, 1, "glass");
-  printf("wolf: %d", wolfTriangles.size());
-  triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
+  // vector<Triangle> wolfTriangles;
+  // LoadObject("./Objects/wolf.obj", wolfTriangles);
+  // normaliseTriangles(wolfTriangles,
+  //                    1.0,
+  //                    -0.2, -1, -0.5,
+  //                    3.15, -2.5, 0,
+  //                    -1, 1, 1, "glass");
+  // printf("wolf: %d", wolfTriangles.size());
+  // triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
 
   vec3 **pixels = new vec3*[SCREEN_WIDTH];
   for(int i = 0; i < SCREEN_WIDTH; i++)

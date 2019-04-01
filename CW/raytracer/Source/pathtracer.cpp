@@ -2,7 +2,7 @@
 #include "definitions.h"
 #include "pathtracer.h"
 
-void bounceDiffuse(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, Intersection intersection, vec4 surfaceNormal){
+void bounceDiffuse(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, Intersection intersection, vec4 surfaceNormal, float atenuare){
   vec3 rotX, rotY;
   orthonormalSystem(surfaceNormal, rotX, rotY);
   vec3 sampledDir = diffuseHemisphere(distribution(generator), distribution(generator));
@@ -15,18 +15,18 @@ void bounceDiffuse(Ray &ray, const vector<Triangle>& triangles, const vector<Sph
 
   vec3 temp(0,0,0);
   trace(ray, triangles, spheres, depth + 1, temp, light);
-  color = color + (temp * intersection.color) * dot(ray.direction, surfaceNormal);
+  color = color + (temp * intersection.color) * dot(ray.direction, surfaceNormal) * atenuare * DIFFUSE_MAGIC_NUMBER;
 }
 
-void bounceMirror(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, vec4 surfaceNormal){
+void bounceMirror(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, vec4 surfaceNormal, float atenuare){
   float costheta = dot(surfaceNormal, ray.direction) * -1.0f;
   ray.direction = normalize(ray.direction + surfaceNormal * (costheta * 2.0f));
   vec3 temp(0.f, 0.f, 0.f);
   trace(ray, triangles, spheres, depth + 1, temp, light);
-  color = color + temp;
+  color = color + temp * atenuare;
 }
 
-void bounceGlass(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, vec4 surfaceNormal){
+void bounceGlass(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, vec4 surfaceNormal, float atenuare){
   float R0 = (AIR_INDEX_OF_REFRACTION - GLASS_INDEX_OF_REFRACTION) / (AIR_INDEX_OF_REFRACTION + GLASS_INDEX_OF_REFRACTION);
   R0 = R0 * R0;
 
@@ -59,10 +59,10 @@ void bounceGlass(Ray &ray, const vector<Triangle>& triangles, const vector<Spher
 
   vec3 tmp(0.f, 0.f, 0.f);
   trace(ray, triangles, spheres, depth + 1, tmp, light);
-  color = color + tmp;
+  color = color + tmp * atenuare * GLASS_MAGIC_NUMBER;
 }
 
-void bounceSpecular(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, vec4 surfaceNormal){
+void bounceSpecular(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& spheres, int depth, vec3& color, Light light, vec4 surfaceNormal, float atenuare){
   ray.direction =  normalize(ray.direction - surfaceNormal * (dot(ray.direction, surfaceNormal) * 2.f));
   vec3 temp(0,0,0);
   trace(ray, triangles, spheres, depth + 1, temp, light);
@@ -74,23 +74,26 @@ void trace(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& sp
   if(closestIntersection(ray, triangles, spheres, intersection) == false)
     return;
 
+  float atenuare = 1.0;
   // base case
-  const float russianRoulette = 0.85f;
-  if (depth >= MAX_DEPTH || distribution(generator) > russianRoulette) {
-      Light softShadowLight;
-      softShadowLight.lightPos.x = light.lightPos.x + (distribution(generator) * 2 - 1) * 0.1f;
-      softShadowLight.lightPos.y = light.lightPos.y;
-      softShadowLight.lightPos.z = light.lightPos.z + (distribution(generator) * 2 - 1) * 0.1f;
-      softShadowLight.lightPos.w = light.lightPos.w;
-      softShadowLight.lightColor = light.lightColor;
-      // glass/mirror doesn't have a color
-      if(strcmp(intersection.material.type, "glass") == 0){
-        color = directLight(triangles, intersection, softShadowLight);
-      }
-      else{
-        color = intersection.color * directLight(triangles, intersection, softShadowLight);
-      }
-      return;
+  const float russianRoulette = RUSSIAN_ROULETTE_FACTOR;
+  if (depth >= MAX_DEPTH || distribution(generator) <= russianRoulette) {
+    Light softShadowLight;
+    softShadowLight.lightPos.x = light.lightPos.x + (distribution(generator) * 2 - 1) * 0.1f;
+    softShadowLight.lightPos.y = light.lightPos.y;
+    softShadowLight.lightPos.z = light.lightPos.z + (distribution(generator) * 2 - 1) * 0.1f;
+    softShadowLight.lightPos.w = light.lightPos.w;
+    softShadowLight.lightColor = light.lightColor;
+    // glass/mirror doesn't have a color
+    if(strcmp(intersection.material.type, "glass") == 0){
+      color = directLight(triangles, intersection, softShadowLight);
+    }
+    else{
+      color = intersection.color * directLight(triangles, intersection, softShadowLight) * atenuare;
+    }
+    atenuare = 1.0f / (1.0f - russianRoulette);
+    return;
+
   }
 
   vec4 surfaceNormal = intersection.normal;
@@ -98,11 +101,11 @@ void trace(Ray &ray, const vector<Triangle>& triangles, const vector<Sphere>& sp
 
   // recursive cases
   if(strcmp(intersection.material.type, "diffuse") == 0)
-    bounceDiffuse(ray, triangles, spheres, depth, color, light, intersection, surfaceNormal);
+    bounceDiffuse(ray, triangles, spheres, depth, color, light, intersection, surfaceNormal, atenuare);
   else if(strcmp(intersection.material.type, "mirror") == 0)
-    bounceMirror(ray, triangles, spheres, depth, color, light, surfaceNormal);
+    bounceMirror(ray, triangles, spheres, depth, color, light, surfaceNormal, atenuare);
   else if(strcmp(intersection.material.type, "glass") == 0)
-    bounceGlass(ray, triangles, spheres, depth, color, light, surfaceNormal);
+    bounceGlass(ray, triangles, spheres, depth, color, light, surfaceNormal, atenuare);
   else if(strcmp(intersection.material.type, "specular") == 0)
-    bounceSpecular(ray, triangles, spheres, depth, color, light, surfaceNormal);
+    bounceSpecular(ray, triangles, spheres, depth, color, light, surfaceNormal, atenuare);
 }

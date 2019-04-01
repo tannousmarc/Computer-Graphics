@@ -44,7 +44,10 @@ std::uniform_real_distribution<float> distribution(0, 1);
 #define SCREEN_HEIGHT 1280
 #define FULLSCREEN_MODE true
 
-#define MAX_DEPTH 30
+#define MAX_DEPTH 5
+#define RUSSIAN_ROULETTE_FACTOR 0.15f
+#define DIFFUSE_MAGIC_NUMBER 0.5f
+#define GLASS_MAGIC_NUMBER 1.15f
 
 #define EPSILON 1e-6
 #define GLASS_INDEX_OF_REFRACTION 1.512f
