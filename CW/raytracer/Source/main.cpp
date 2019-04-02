@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
   vector<Triangle> triangles;
   vector<Sphere> spheres;
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-  LoadTestModel(triangles);
+ 
   Camera cam;
   reset_camera(cam);
   Light light;
@@ -61,18 +61,21 @@ int main(int argc, char* argv[])
   // Load user parsed argument as scene
   if(argc == 2){
     if(strcmp(argv[1], "colorBleeding") == 0){
-      printf("colorbleed");
+       LoadTestModelColorBleeding(triangles);
     }
     else if(strcmp(argv[1], "glassCube") == 0){
       light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
       light.lightColor = 14.0f * vec3(1, 1, 1);
+      LoadTestModelGlassCube(triangles);
     }
     else if(strcmp(argv[1], "glassCubeSphere") == 0){
       light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
       light.lightColor = 14.0f * vec3(1, 1, 1);
       spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
+      LoadTestModelGlassCube(triangles);
     }
     else if(strcmp(argv[1], "glassWolf") == 0){
+      LoadTestModelNone(triangles);
       light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
       light.lightColor = 14.0f * vec3(1, 1, 1);
       vector<Triangle> wolfTriangles;
@@ -82,9 +85,11 @@ int main(int argc, char* argv[])
                         -0.2, -1, -0.5,
                         3.15, -2.5, 0,
                         -1, 1, 1, "glass");
-      printf("wolf: %d", wolfTriangles.size());
       triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
     }
+  }
+  else{
+     LoadTestModel(triangles);
   }
 
   while( NoQuitMessageSDL() )
