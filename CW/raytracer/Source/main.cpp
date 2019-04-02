@@ -41,9 +41,9 @@
 int main(int argc, char* argv[])
 {
   srand (time(NULL));
+
   vector<Triangle> triangles;
   vector<Sphere> spheres;
-  // spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel(triangles);
   Camera cam;
@@ -51,22 +51,41 @@ int main(int argc, char* argv[])
   Light light;
   reset_light(light);
 
-  // vector<Triangle> wolfTriangles;
-  // LoadObject("./Objects/wolf.obj", wolfTriangles);
-  // normaliseTriangles(wolfTriangles,
-  //                    1.0,
-  //                    -0.2, -1, -0.5,
-  //                    3.15, -2.5, 0,
-  //                    -1, 1, 1, "glass");
-  // printf("wolf: %d", wolfTriangles.size());
-  // triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
-
   vec3 **pixels = new vec3*[SCREEN_WIDTH];
   for(int i = 0; i < SCREEN_WIDTH; i++)
     pixels[i] = new vec3[SCREEN_HEIGHT];
 
   int samplesSeenSoFar;
   reset_evolutionModel(pixels, samplesSeenSoFar);
+
+  // Load user parsed argument as scene
+  if(argc == 2){
+    if(strcmp(argv[1], "colorBleeding") == 0){
+      printf("colorbleed");
+    }
+    else if(strcmp(argv[1], "glassCube") == 0){
+      light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
+      light.lightColor = 14.0f * vec3(1, 1, 1);
+    }
+    else if(strcmp(argv[1], "glassCubeSphere") == 0){
+      light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
+      light.lightColor = 14.0f * vec3(1, 1, 1);
+      spheres.push_back(Sphere(0.3f, vec4(-0.45,0.7,-0.55,1), vec3(1,0,0), Material("glass")));
+    }
+    else if(strcmp(argv[1], "glassWolf") == 0){
+      light.lightPos = vec4(0.7, 0.95, -0.7, 1.0);
+      light.lightColor = 14.0f * vec3(1, 1, 1);
+      vector<Triangle> wolfTriangles;
+      LoadObject("./Objects/wolf.obj", wolfTriangles);
+      normaliseTriangles(wolfTriangles,
+                        1.0,
+                        -0.2, -1, -0.5,
+                        3.15, -2.5, 0,
+                        -1, 1, 1, "glass");
+      printf("wolf: %d", wolfTriangles.size());
+      triangles.insert( triangles.end(), wolfTriangles.begin(), wolfTriangles.end() );
+    }
+  }
 
   while( NoQuitMessageSDL() )
     {
