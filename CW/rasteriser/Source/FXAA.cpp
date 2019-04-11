@@ -44,6 +44,7 @@ float QUALITY(int i){
 
 }
 
+// NEEDS RE-WRITING
 
 vec3 getAliasedPixel(vec3 currentPixels[SCREEN_HEIGHT][SCREEN_WIDTH], int x, int y){
     vec3 colorCenter = currentPixels[x][y];
@@ -241,6 +242,4 @@ vec3 getAliasedPixel(vec3 currentPixels[SCREEN_HEIGHT][SCREEN_WIDTH], int x, int
 
     return currentPixels[x][y];
 }
-
-// The only inputs needed are the texture screenTexture, the UV coordinates of the fragment In.uv and the inverse of the size of the window inverseScreenSize (1.0/width, 1.0/height); the only output is a RGB color vector fragColor.
 

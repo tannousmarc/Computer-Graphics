@@ -56,8 +56,8 @@ struct RenderedObject{
 
 
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 1280
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 640
 #define FULLSCREEN_MODE true
 
 void Update(Camera &cam, Light &light);
