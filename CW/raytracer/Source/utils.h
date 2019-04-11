@@ -13,6 +13,6 @@ void normaliseTriangles(vector<Triangle>& rawTriangles, float scale,
                         float displacementX, float displacementY, float displacementZ,
                         float rotateX, float rotateY, float rotateZ,
                         float adjustNormalX, float adjustNormalY, float adjustNormalZ,
-                        char* type);
+                        const char* type);
 
 #endif

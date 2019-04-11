@@ -37,6 +37,7 @@
 #include "pathtracer.cpp"
 #include "sphere.cpp"
 #include "parser.cpp"
+#include "AABB.h"
 
 int main(int argc, char* argv[])
 {
