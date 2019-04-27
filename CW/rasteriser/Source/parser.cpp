@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <stdint.h>
 #include "definitions.cpp"
-
+#include "OBJ_Loader.h"
 
 glm::vec4 toVec4(glm::vec3 ceva){
     return vec4(ceva.x, ceva.y, ceva.z, 1);
@@ -104,9 +104,22 @@ bool loadGivenFile(std::string Path, vector<Triangle>& triangles){
 			std::vector<vec2> textureCoords;
 			std::vector<vec3> normals;
 
+			// std::vector<std::string> MeshMatNames;
+
+			// bool listening = false;
+			// std::string meshname;
+
+			// Mesh tempMesh;
+
+			// #ifdef OBJL_CONSOLE_OUTPUT
+			// const unsigned int outputEveryNth = 1000;
+			// unsigned int outputIndicator = outputEveryNth;
+			// #endif
+
 			std::string curline;
 			
-			while (std::getline(file, curline)){
+			while (std::getline(file, curline))
+			{
 				if (algorithm::firstToken(curline) == "v"){
 					std::vector<std::string> spos;
 					vec3 vpos;
@@ -167,12 +180,12 @@ bool loadGivenFile(std::string Path, vector<Triangle>& triangles){
                         }else if(splitElems.size() == 3 && splitElems[1] == ""){
                             verticesPositions.push_back(positions[std::stoi(splitElems[0]) - 1]);
                             texturesPositions.push_back(vec2(0,0));
-                            normalsPositions.push_back(normals[std::stoi(splitElems[2])]);
+                            normalsPositions.push_back(normals[std::stoi(splitElems[2]) - 1]);
                         }else if(splitElems.size() == 3 && splitElems[1] != ""){
 
                             verticesPositions.push_back(positions[std::stoi(splitElems[0]) - 1]);
                             texturesPositions.push_back(textureCoords[std::stoi(splitElems[1]) - 1]);
-                            normalsPositions.push_back(normals[std::stoi(splitElems[2])]);
+                            normalsPositions.push_back(normals[std::stoi(splitElems[2]) - 1]);
                         }
                     }
 
@@ -182,13 +195,142 @@ bool loadGivenFile(std::string Path, vector<Triangle>& triangles){
                         currentTriangle.hasTexture = true;
                         triangles.push_back(currentTriangle);
                     }
+					// Add Vertices
+
+
+					// for (int i = 0; i < int(vVerts.size()); i++)
+					// {
+					// 	Vertices.push_back(vVerts[i]);
+
+					// 	LoadedVertices.push_back(vVerts[i]);
+					// }
+
+					// std::vector<unsigned int> iIndices;
+
+					// VertexTriangluation(iIndices, vVerts);
+
+					// // Add Indices
+					// for (int i = 0; i < int(iIndices.size()); i++)
+					// {
+					// 	unsigned int indnum = (unsigned int)((Vertices.size()) - vVerts.size()) + iIndices[i];
+					// 	Indices.push_back(indnum);
+
+					// 	indnum = (unsigned int)((LoadedVertices.size()) - vVerts.size()) + iIndices[i];
+					// 	LoadedIndices.push_back(indnum);
+
+					// }
 				}
+			// 	// Get Mesh Material Name
+			// 	if (algorithm::firstToken(curline) == "usemtl")
+			// 	{
+			// 		MeshMatNames.push_back(algorithm::tail(curline));
+
+			// 		// Create new Mesh, if Material changes within a group
+			// 		if (!Indices.empty() && !Vertices.empty())
+			// 		{
+			// 			// Create Mesh
+			// 			tempMesh = Mesh(Vertices, Indices);
+			// 			tempMesh.MeshName = meshname;
+			// 			int i = 2;
+			// 			while(1) {
+			// 				tempMesh.MeshName = meshname + "_" + std::to_string(i);
+
+			// 				for (auto &m : LoadedMeshes)
+			// 					if (m.MeshName == tempMesh.MeshName)
+			// 						continue;
+			// 				break;
+			// 			}
+
+			// 			// Insert Mesh
+			// 			LoadedMeshes.push_back(tempMesh);
+
+			// 			// Cleanup
+			// 			Vertices.clear();
+			// 			Indices.clear();
+			// 		}
+
+			// 		#ifdef OBJL_CONSOLE_OUTPUT
+			// 		outputIndicator = 0;
+			// 		#endif
+			// 	}
+			// 	// Load Materials
+			// 	if (algorithm::firstToken(curline) == "mtllib")
+			// 	{
+			// 		// Generate LoadedMaterial
+
+			// 		// Generate a path to the material file
+			// 		std::vector<std::string> temp;
+			// 		algorithm::split(Path, temp, "/");
+
+			// 		std::string pathtomat = "";
+
+			// 		if (temp.size() != 1)
+			// 		{
+			// 			for (size_t i = 0; i < temp.size() - 1; i++)
+			// 			{
+			// 				pathtomat += temp[i] + "/";
+			// 			}
+			// 		}
+
+
+			// 		pathtomat += algorithm::tail(curline);
+
+			// 		#ifdef OBJL_CONSOLE_OUTPUT
+			// 		std::cout << std::endl << "- find materials in: " << pathtomat << std::endl;
+			// 		#endif
+
+			// 		// Load Materials
+			// 		LoadMaterials(pathtomat);
+			// 	}
 			}
-        }
+
+			// #ifdef OBJL_CONSOLE_OUTPUT
+			// std::cout << std::endl;
+			// #endif
+
+			// // Deal with last mesh
+
+			// if (!Indices.empty() && !Vertices.empty())
+			// {
+			// 	// Create Mesh
+			// 	tempMesh = Mesh(Vertices, Indices);
+			// 	tempMesh.MeshName = meshname;
+
+			// 	// Insert Mesh
+			// 	LoadedMeshes.push_back(tempMesh);
+			// }
+
+			// file.close();
+
+			// // Set Materials for each Mesh
+			// for (size_t i = 0; i < MeshMatNames.size(); i++)
+			// {
+			// 	std::string matname = MeshMatNames[i];
+
+			// 	// Find corresponding material name in loaded materials
+			// 	// when found copy material variables into mesh material
+			// 	for (size_t j = 0; j < LoadedMaterials.size(); j++)
+			// 	{
+			// 		if (LoadedMaterials[j].name == matname)
+			// 		{
+			// 			LoadedMeshes[i].MeshMaterial = LoadedMaterials[j];
+			// 			break;
+			// 		}
+			// 	}
+			// }
+
+			// if (LoadedMeshes.empty() && LoadedVertices.empty() && LoadedIndices.empty())
+			// {
+			// 	return false;
+			// }
+			// else
+			// {
+			// 	return true;
+			// }
+            return true;
+}
 
 RenderedObject LoadObject(string path){
-    objl::Loader Loader;
-    bool loadout = Loader.LoadFile(path);
     vector<Triangle> triangles;
     bool ceva = loadGivenFile(path, triangles);
     RenderedObject returnedObject;
