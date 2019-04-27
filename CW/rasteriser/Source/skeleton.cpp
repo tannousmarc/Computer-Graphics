@@ -11,6 +11,11 @@
 
 #define FOCAL_LENGTH SCREEN_HEIGHT
 
+void transformToClippingSpace(vector<vec4>& vertices, Camera cam);
+int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, int axis);
+
+
+
 const float f = 10;
 // const float n = SCREEN_HEIGHT;
 const float n = 2;
@@ -41,6 +46,8 @@ vec3 currentPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
 int currentMinimumX = 0, currentMinimumY = 0;
 int currentMaximumX = SCREEN_HEIGHT, currentMaximumY = SCREEN_WIDTH;
 int doAntiAliasing = 0;
+int doShadows = 0;
+int doClipping = 0;
 vec3 zero(0, 0, 0);
 // w = z / f
 
@@ -52,11 +59,37 @@ Camera getLightCamera(Light light){
    lightCamera.cameraRotationZ = mat4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
    lightCamera.yaw = 0.0;
    lightCamera.pitch = 0.0;
-   lightCamera.focalLength = SCREEN_HEIGHT;
+   lightCamera.focalLength = SCREEN_HEIGHT/2;
    lightCamera.cameraPos = vec4(light.lightPos.x, light.lightPos.y, light.lightPos.z, 1);
-  //  lightCamera.pitch -= 1.5;
+  //  lightCamera.pitch -= 2.0f;
   //  rotateX(lightCamera, lightCamera.pitch);
    return lightCamera;
+}
+
+vec3 prevPos3d(0,0,0);
+
+inline void VertexShaderClipping(const Vertex& v, Pixel& p, Camera cam){
+  // vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
+  vec4 vNew = v.position;
+  // p.pos3d = vec3(v.position.x, v.position.y, v.position.z);
+  p.pos3d = prevPos3d;
+
+  // if(vNew.z < 0.001)
+  //   return;
+
+  // vNew.w = v.position.w * (cam.cameraRotationX * cam.cameraRotationY);
+  // cout << cam.focalLength << " " << vNew.z << " " << vNew.w << " " << v.position.w << " A: " << vNew.x / v.position.w + (SCREEN_WIDTH / 2) << " B: " <<  (cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2) << endl;
+  // p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
+  p.x = (int) ((vNew.x / vNew.w) + (SCREEN_WIDTH / 2));
+  // p.y = (int) ((cam.focalLength * vNew.y / vNew.z)  + (SCREEN_HEIGHT / 2));
+  p.y = (int) ((vNew.y / vNew.w) + (SCREEN_HEIGHT) / 2);
+
+  // IMPARTE LA vNew.w
+  p.zinv = (float) (1.0f / vNew.z);
+  // p.zinv = (float) 1.0f / (cam.focalLength * vNew.w);
+  
+  p.textureX = v.texturePosition.x;
+  p.textureY = v.texturePosition.y;
 }
 
 inline void VertexShader(const Vertex& v, Pixel& p, Camera cam){
@@ -64,6 +97,7 @@ inline void VertexShader(const Vertex& v, Pixel& p, Camera cam){
   vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
 
   p.pos3d = vec3(v.position.x, v.position.y, v.position.z);
+  prevPos3d = p.pos3d;
 
   // if(vNew.z < 0.001)
   //   return;
@@ -131,21 +165,23 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
 
     if(p.x >= 0 && p.x < SCREEN_HEIGHT && p.y >= 0 && p.y < SCREEN_WIDTH){
 
-
-      if(!doAntiAliasing){
-        vec3 toPutPixel = illumination*color;
+      vec3 toPutPixel = illumination*color;
         // cout << p.zinv << " " << shadow
-
+      if(doShadows){
         if((cameraPixel.zinv < shadowMap[cameraPixel.y][cameraPixel.x] && abs(shadowMap[cameraPixel.y][cameraPixel.x] - cameraPixel.zinv) > 0.01f)){
           toPutPixel.x /= 2;
           toPutPixel.y /= 2;
           toPutPixel.z /= 2;
         }
+      }
+
+      if(!doAntiAliasing){
+        
         PutPixelSDL(screen, p.x, p.y, toPutPixel);
         // cout << "PUT PIXEL SDL " << p.x << " " << p.y << " " << endl;
       }
       else{
-        currentPixels[p.x][p.y] = (illumination * color);
+        currentPixels[p.x][p.y] = toPutPixel;
         currentMaximumX = std::max(currentMaximumX, p.x + 1);
         currentMaximumY = std::max(currentMaximumY, p.y + 1);
         currentMinimumX = std::min(currentMinimumX, p.x);
@@ -163,7 +199,7 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel>& result){
   float stepY = (b.y - a.y) / float(max(N - 1, 1));
   vec3 stepPos3d = (b.pos3d * b.zinv - a.pos3d * a.zinv) / float(max(N - 1, 1));
 
-  for (int i = 0; i < result.size(); i++) {
+  for (size_t i = 0; i < result.size(); i++) {
     result[i].x = glm::round(a.x + stepX * i);
     result[i].y = glm::round(a.y + stepY * i);
     result[i].zinv = a.zinv + stepZ * i;
@@ -188,14 +224,73 @@ int isInsideFrustrum(Vertex v){
 				abs(position.z) <= abs(position.w);
 }
 
- void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, Camera lightCamera, vec4 normal, vec3 reflectance, bool hasTexture, SDL_Surface* texture_surface){
+ void DrawPolygon(screen *screen, vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, Camera lightCamera, vec4 normal, vec3 reflectance, bool hasTexture, SDL_Surface* texture_surface, bool afterClipping){
    int V = vertices.size();
    vector<Pixel> vertexPixels(V);
-   for(int i = 0; i < V; i++){
-     VertexShader(vertices[i], vertexPixels[i], cam);
+
+   if(!afterClipping){
+    for(int i = 0; i < V; i++){
+      VertexShader(vertices[i], vertexPixels[i], cam);
+    }
+   }else{
+     for(int i = 0; i < V; i++){
+      VertexShaderClipping(vertices[i], vertexPixels[i], cam);
+    }
    }
 
-  //  cout << "JUST AFTER VERTEX SHADER" << endl;
+  
+    if(doClipping && !afterClipping){
+      vector<vec4> positions;
+      for(int i = 0; i < V; i++){
+        vertices[i].position = (vertices[i].position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
+      }
+
+      positions.push_back(vertices[0].position);
+      positions.push_back(vertices[1].position);
+      positions.push_back(vertices[2].position);
+      // cout << "POS BEFORE " << positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl;
+      transformToClippingSpace(positions, cam);
+      // cout << "POS AFTER " << positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl;
+
+      // if(isInsideFrustrum(vertices[0]) && isInsideFrustrum(vertices[1]) && isInsideFrustrum(vertices[2])){
+      //   DrawPolygon(screen, vertices, cam, triangles[i].color,
+      //           depthBuffer, light, currentNormal, currentReflectance, triangles[i].hasTexture, NULL);
+
+      //   cout << "HAS DRAWNNNNNNNN" << endl;
+      //   continue;
+      // }
+      
+      vertices[0].position = positions[0];
+      vertices[1].position = positions[1];
+      vertices[2].position = positions[2];
+
+      vector<Vertex> resultingVertices;
+
+      // cout << "Positions: "<< positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl
+      //   << positions[1].x << " " << positions[1].y << " " << positions[1].z << " " << positions[1].w << endl
+      //   << positions[2].x << " " << positions[2].y << " " << positions[2].z << " " << positions[2].w << endl;
+      // cout << "IN DRAW" << endl;
+
+      if(clipTriangleAxis(vertices, resultingVertices, 0)){
+          cout << vertices.size() << endl;
+          vector<Vertex> currentTriangleVertices(3);
+            for(size_t v = 1; v < vertices.size()-1; v++){
+              currentTriangleVertices[0] = vertices[0];
+              currentTriangleVertices[1] = vertices[v];
+              currentTriangleVertices[2] = vertices[v+1];
+              cout << "AFTER ONE: " << currentTriangleVertices[0].position.x << " " << currentTriangleVertices[0].position.y << " " << currentTriangleVertices[0].position.z << " " << currentTriangleVertices[0].position.w << " " << endl;
+              cout << "AFTER TWO: " << currentTriangleVertices[v].position.x << " " << currentTriangleVertices[v].position.y << " " << currentTriangleVertices[v].position.z << " " << currentTriangleVertices[v].position.w << " " <<endl;
+              cout << "AFTER THREE: " << currentTriangleVertices[v+1].position.x << " " << currentTriangleVertices[v+1].position.y << " " << currentTriangleVertices[v+1].position.z << " " << currentTriangleVertices[v+1].position.w << " " <<endl;
+
+              cout << "SHOULD BE DRAWING?" << endl;
+              DrawPolygon(screen, currentTriangleVertices, cam, color,
+                depthBuffer, shadowMap, light, lightCamera, normal, reflectance, hasTexture, NULL, 1);
+            }
+          // }
+        }
+        return;
+    }
+
 
    vector<Pixel> leftPixels;
    vector<Pixel> rightPixels;
@@ -205,7 +300,7 @@ int isInsideFrustrum(Vertex v){
    int maxY = -numeric_limits<int>::max();
    int minY = numeric_limits<int>::max();;
    
-   for(int i = 0; i < vertexPixels.size(); i++){
+   for(size_t i = 0; i < vertexPixels.size(); i++){
      maxX = std::max(maxX, vertexPixels[i].x);
      maxY = std::max(maxY, vertexPixels[i].y);
      minX = std::min(minX, vertexPixels[i].x);
@@ -257,22 +352,27 @@ int isInsideFrustrum(Vertex v){
           //           (getTextureAt(texture_surface, vertexPixels[0].textureX, vertexPixels[0].textureY) * c)
           //         );
         }
-        Pixel cameraPixel;
-        cameraPixel.pos3d = tPixel.pos3d;
-        vec4 vNew = (vec4(cameraPixel.pos3d.x,cameraPixel.pos3d.y,cameraPixel.pos3d.z, 1) - lightCamera.cameraPos) * lightCamera.cameraRotationX;
-        if(vNew.z < 0.001){
-          PixelShader(tPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
+
+        if(doShadows){
+          Pixel cameraPixel;
+          cameraPixel.pos3d = tPixel.pos3d;
+          vec4 vNew = (vec4(cameraPixel.pos3d.x,cameraPixel.pos3d.y,cameraPixel.pos3d.z, 1) - lightCamera.cameraPos) * lightCamera.cameraRotationX;
+          if(vNew.z < 0.001){
+            PixelShader(tPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
+          }else{
+            cameraPixel.x = (int) ((lightCamera.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
+            cameraPixel.y = (int) ((lightCamera.focalLength * vNew.y / vNew.z)  + (SCREEN_HEIGHT / 2));
+            cameraPixel.zinv = 1.0f / vNew.z;
+            if(cameraPixel.y >= 0 && cameraPixel.y < SCREEN_HEIGHT && cameraPixel.x >= 0 && cameraPixel.x < SCREEN_WIDTH &&
+              abs(vNew.z - lightCamera.cameraPos.z) >= 0.1f){
+              PixelShader(tPixel, cameraPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
+            }else{
+              PixelShader(tPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
+            }
+            
+          }
         }else{
-           cameraPixel.x = (int) ((lightCamera.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
-           cameraPixel.y = (int) ((lightCamera.focalLength * vNew.y / vNew.z)  + (SCREEN_HEIGHT / 2));
-           cameraPixel.zinv = 1.0f / vNew.z;
-           if(cameraPixel.y >= 0 && cameraPixel.y < SCREEN_HEIGHT && cameraPixel.x >= 0 && cameraPixel.x < SCREEN_WIDTH &&
-            abs(vNew.z - lightCamera.cameraPos.z) >= 0.01f){
-            PixelShader(tPixel, cameraPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
-           }else{
-             PixelShader(tPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
-           }
-          
+          PixelShader(tPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
         }
        }
      }
@@ -320,7 +420,7 @@ inline void VertexShaderShadow(const Vertex& v, Pixel& p, Camera cam){
    int maxY = -numeric_limits<int>::max();
    int minY = numeric_limits<int>::max();;
    
-   for(int i = 0; i < vertexPixels.size(); i++){
+   for(size_t i = 0; i < vertexPixels.size(); i++){
      maxX = std::max(maxX, vertexPixels[i].x);
      maxY = std::max(maxY, vertexPixels[i].y);
      minX = std::min(minX, vertexPixels[i].x);
@@ -399,20 +499,20 @@ int main( int argc, char* argv[] )
   // temple.texture_surface = SDL_LoadBMP("Objects/Temple/temple.bmp");
   // objects.push_back(temple);
 
-  // RenderedObject dog = LoadObject("Objects/DogMaya/dog.obj");
-  // normaliseTriangles(dog.triangles,
-  //                    1.4, 
-  //                    0.6, -0.4, 0.1,
-  //                    1.8f, 0, 0,
-  //                    1, -1, -1);
-  // dog.texture_surface = SDL_LoadBMP("Objects/DogMaya/Dog_diffuse.bmp");
-  // objects.push_back(dog);
+  RenderedObject dog = LoadObject("Objects/DogMaya/dog.obj");
+  normaliseTriangles(dog.triangles,
+                     1.4, 
+                     0.6, -0.4, 0.1,
+                     1.8f, 0, 0,
+                     1, -1, -1);
+  dog.texture_surface = SDL_LoadBMP("Objects/DogMaya/Dog_diffuse.bmp");
+  objects.push_back(dog);
                        
   Camera cam;
   reset_camera(cam);
 
   Light light;
-  reset_light(light);
+  reset_light(light, doShadows);
   while (NoQuitMessageSDL())
     {
       Update(cam, light);
@@ -459,7 +559,7 @@ void clipHelper(vector<Vertex> &vertices, vector<Vertex> &resultingVertices,
   Vertex previousVertex = vertices[vertices.size() - 1];
   float previousComponent = getPositionByAxis(previousVertex, axis) * factor;
   unsigned int previousInside = (previousComponent <= previousVertex.position.w);
-  for(int i = 0; i < vertices.size(); i++){
+  for(size_t i = 0; i < vertices.size(); i++){
     Vertex currentVertex = vertices[i];
     float currentComponent = getPositionByAxis(currentVertex, axis) * factor;
     int currentInside = currentComponent <= currentVertex.position.w;
@@ -504,13 +604,13 @@ void transformToClippingSpace(vector<vec4>& vertices, Camera cam){
   //   vertices[i].w = 1;
   //   vertices[i] = CLIP_SPACE_TRANSFORM * vertices[i];
   // }
-  for(int i = 0; i < vertices.size(); i++){
+  for(size_t i = 0; i < vertices.size(); i++){
     vertices[i].w = vertices[i].z / cam.focalLength;
   }
 }
 
 void perspectiveDivide(vector<Vertex>& vertices){
-  for(int i = 0; i < vertices.size(); i++){
+  for(size_t i = 0; i < vertices.size(); i++){
     vertices[i].position.x = vertices[i].position.x / vertices[i].position.w;
     vertices[i].position.y = vertices[i].position.y / vertices[i].position.w;
     vertices[i].position.z = vertices[i].position.z / vertices[i].position.w;
@@ -554,88 +654,45 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
   // reset_camera(lightPOVCam);
   // lightPOVCam.cameraPos = vec4(light.lightPos.x, light.lightPos.y, light.lightPos.z, 1);
   lightCamera = getLightCamera(light);
-  for(uint32_t i = 0; i < triangles.size(); i++){
+  if(doShadows){
+    for(uint32_t i = 0; i < triangles.size(); i++){
+      vector<Vertex> vertices(3);
+      vertices[0].position = triangles[i].v0;
+      vertices[1].position = triangles[i].v1;
+      vertices[2].position = triangles[i].v2;
+
+      DrawShadowMapForTriangle(screen, vertices, light, lightCamera, shadowMap);
+    }
+    for(uint32_t i = 0; i < objects.size(); i++){
+        for(uint32_t j = 0; j < objects[i].triangles.size(); j++){
+        vector<Vertex> vertices(3);
+        vertices[0].position = objects[i].triangles[j].v0;
+        vertices[1].position = objects[i].triangles[j].v1;
+        vertices[2].position = objects[i].triangles[j].v2;
+        DrawShadowMapForTriangle(screen, vertices, light, lightCamera, shadowMap);
+        }
+    }
+  }
+
+  // #pragma omp parallel for
+  for(size_t i = 0; i < triangles.size(); i++){
+    vec4 currentNormal = triangles[i].normal;
+    vec3 currentReflectance(1,1,1);
+
     vector<Vertex> vertices(3);
     vertices[0].position = triangles[i].v0;
     vertices[1].position = triangles[i].v1;
     vertices[2].position = triangles[i].v2;
 
-    DrawShadowMapForTriangle(screen, vertices, light, lightCamera, shadowMap);
-  }
-
-  // #pragma omp parallel for
-  for(uint32_t i = 0; i < triangles.size(); i++){
-    vec4 currentNormal = triangles[i].normal;
-    vec3 currentReflectance(1,1,1);
-
-    // vector<Vertex> vertices(3);
-    // vertices[0].position = triangles[i].v0;
-    // vertices[1].position = triangles[i].v1;
-    // vertices[2].position = triangles[i].v2;
-
-    // // cout << "INITIAL ONE: " << vertices[0].position.x << " " << vertices[0].position.y << " " << vertices[0].position.z << endl;
-    // // cout << "INITIAL TWO: " << vertices[1].position.x << " " << vertices[1].position.y << " " << vertices[1].position.z << endl;
-    // // cout << "INITIAL THREE: " << vertices[2].position.x << " " << vertices[2].position.y << " " << vertices[2].position.z << endl;
-
-    // vertices[0].texturePosition = triangles[i].uv0;
-    // vertices[1].texturePosition = triangles[i].uv1;
-    // vertices[2].texturePosition = triangles[i].uv2;
+    vertices[0].texturePosition = triangles[i].uv0;
+    vertices[1].texturePosition = triangles[i].uv1;
+    vertices[2].texturePosition = triangles[i].uv2;
 
     // // -------------------
 
-    vector<vec4> positions;
-    positions.push_back(triangles[i].v0);
-    positions.push_back(triangles[i].v1);
-    positions.push_back(triangles[i].v2);
-    // cout << "POS BEFORE " << positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl;
-    // transformToClippingSpace(positions, cam);
-    // cout << "POS AFTER " << positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl;
-    vector<Vertex> vertices(3);
-    vertices[0].position = 1.0f * positions[0];
-    vertices[1].position = 1.0f * positions[1];
-    vertices[2].position = 1.0f * positions[2];
-
-    vertices[0].texturePosition = 1.0f * triangles[i].uv0;
-    vertices[1].texturePosition = 1.0f * triangles[i].uv1;
-    vertices[2].texturePosition = 1.0f * triangles[i].uv2;
-
-    // if(isInsideFrustrum(vertices[0]) && isInsideFrustrum(vertices[1]) && isInsideFrustrum(vertices[2])){
-    //   DrawPolygon(screen, vertices, cam, triangles[i].color,
-    //           depthBuffer, light, currentNormal, currentReflectance, triangles[i].hasTexture, NULL);
-
-    //   cout << "HAS DRAWNNNNNNNN" << endl;
-    //   continue;
-    // }
-    // vector<Vertex> resultingVertices;
-
-    // cout << "Positions: "<< positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl
-    //   << positions[1].x << " " << positions[1].y << " " << positions[1].z << " " << positions[1].w << endl
-    //   << positions[2].x << " " << positions[2].y << " " << positions[2].z << " " << positions[2].w << endl;
-    // cout << "IN DRAW" << endl;
-
-    // if(clipTriangleAxis(vertices, resultingVertices, 0)){
-    //     cout << vertices.size() << endl;
-    //     vector<Vertex> currentTriangleVertices(3);
-    //       for(int v = 1; v < vertices.size()-1; v++){
-    //         currentTriangleVertices[0] = vertices[0];
-    //         currentTriangleVertices[1] = vertices[v];
-    //         currentTriangleVertices[2] = vertices[v+1];
-    //         cout << "AFTER ONE: " << currentTriangleVertices[0].position.x << " " << currentTriangleVertices[0].position.y << " " << currentTriangleVertices[0].position.z << " " << currentTriangleVertices[0].position.w << " " << endl;
-    //         cout << "AFTER TWO: " << currentTriangleVertices[v].position.x << " " << currentTriangleVertices[v].position.y << " " << currentTriangleVertices[v].position.z << " " << currentTriangleVertices[v].position.w << " " <<endl;
-    //         cout << "AFTER THREE: " << currentTriangleVertices[v+1].position.x << " " << currentTriangleVertices[v+1].position.y << " " << currentTriangleVertices[v+1].position.z << " " << currentTriangleVertices[v+1].position.w << " " <<endl;
-
-    //         cout << "SHOULD BE DRAWING?" << endl;
-    //         DrawPolygon(screen, currentTriangleVertices, cam, triangles[i].color,
-    //           depthBuffer, light, currentNormal, currentReflectance, triangles[i].hasTexture, NULL);
-    //       }
-    //     // }
-    //   }
-
-
-
     // Clipping should happen here!
 
-    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, triangles[i].hasTexture, NULL);
+    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, triangles[i].hasTexture, NULL, 0);
     }
 
     for(uint32_t i = 0; i < objects.size(); i++){
@@ -652,7 +709,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
       vertices[1].texturePosition = objects[i].triangles[j].uv1;
       vertices[2].texturePosition = objects[i].triangles[j].uv2;
 
-      DrawPolygon(screen, vertices, cam, objects[i].triangles[j].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, objects[i].triangles[j].hasTexture, objects[i].texture_surface);
+      DrawPolygon(screen, vertices, cam, objects[i].triangles[j].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, objects[i].triangles[j].hasTexture, objects[i].texture_surface, 0);
       }
     }
 
@@ -717,6 +774,22 @@ void Update(Camera &cam, Light &light)
     if( keyState[SDL_SCANCODE_J] ){
       doAntiAliasing = 0;
     }
+    if( keyState[SDL_SCANCODE_B] ){
+      if(!doShadows)
+        reset_light(light, 1);
+      doShadows = 1;
+    }
+    if( keyState[SDL_SCANCODE_N] ){
+      if(doShadows)
+        reset_light(light, 0);
+      doShadows = 0;
+    }
+    if( keyState[SDL_SCANCODE_U] ){
+      doClipping = 1;
+    }
+    if( keyState[SDL_SCANCODE_I] ){
+      doClipping = 0;
+    }
 
 
 
@@ -740,6 +813,6 @@ void Update(Camera &cam, Light &light)
 
   if( keyState[SDL_SCANCODE_SPACE]){
     reset_camera(cam);
-    reset_light(light);
+    reset_light(light, doShadows);
   }
 }

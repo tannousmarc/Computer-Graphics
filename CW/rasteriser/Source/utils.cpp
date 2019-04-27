@@ -13,8 +13,10 @@ void reset_camera(Camera &cam){
   SDL_WarpMouseGlobal(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
 }
 
-void reset_light(Light &light){
-  light.lightPos = vec3(0, -0.5f, -0.7f);
+void reset_light(Light &light, int doShadows){
+  if(!doShadows)
+    light.lightPos = vec3(0.0f, -0.5f, -0.7f);
+  else light.lightPos = vec3(-0.5f, -0.5f, -2.3f);
   light.lightPower = 14.0f*vec3(1, 1, 1);
   light.indirectLightPowerPerArea = 0.5f*vec3(1, 1, 1);
 }

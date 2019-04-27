@@ -150,7 +150,7 @@ namespace objl
 	{
 		Material()
 		{
-			name;
+			// name;
 			Ns = 0.0f;
 			Ni = 0.0f;
 			d = 0.0f;
@@ -652,7 +652,7 @@ namespace objl
 
 					if (temp.size() != 1)
 					{
-						for (int i = 0; i < temp.size() - 1; i++)
+						for (size_t i = 0; i < temp.size() - 1; i++)
 						{
 							pathtomat += temp[i] + "/";
 						}
@@ -689,13 +689,13 @@ namespace objl
 			file.close();
 
 			// Set Materials for each Mesh
-			for (int i = 0; i < MeshMatNames.size(); i++)
+			for (size_t i = 0; i < MeshMatNames.size(); i++)
 			{
 				std::string matname = MeshMatNames[i];
 
 				// Find corresponding material name in loaded materials
 				// when found copy material variables into mesh material
-				for (int j = 0; j < LoadedMaterials.size(); j++)
+				for (size_t j = 0; j < LoadedMaterials.size(); j++)
 				{
 					if (LoadedMaterials[j].name == matname)
 					{
@@ -743,7 +743,7 @@ namespace objl
 			for (int i = 0; i < int(sface.size()); i++)
 			{
 				// See What type the vertex is.
-				int vtype;
+				int vtype = -1;
 
 				algorithm::split(sface[i], svert, "/");
 
@@ -863,7 +863,7 @@ namespace objl
 			while (true)
 			{
 				// For every vertex
-				for (int i = 0; i < int(tVerts.size()); i++)
+				for (size_t i = 0; i < tVerts.size(); i++)
 				{
 					// pPrev = the previous vertex in the list
 					Vertex pPrev;
