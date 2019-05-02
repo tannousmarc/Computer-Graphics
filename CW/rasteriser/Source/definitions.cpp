@@ -54,6 +54,12 @@ struct RenderedObject{
   SDL_Surface* texture_surface;
 };
 
+struct VertexProperties{
+  vec2 texturePos;
+  vec4 relativePosition;
+  vec3 initialPosition;
+  float zinv;
+};
 
 
 #define SCREEN_WIDTH 640

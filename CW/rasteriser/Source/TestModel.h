@@ -70,91 +70,91 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	vec3 G(L,L,L);
 	vec3 H(0,L,L);
 
-	// Floor:
-	triangles.push_back( Triangle( C, B, A, green ) );
-	triangles.push_back( Triangle( C, D, B, green ) );
+	// // Floor:
+	// triangles.push_back( Triangle( C, B, A, green ) );
+	// triangles.push_back( Triangle( C, D, B, green ) );
 
-	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple ) );
-	triangles.push_back( Triangle( C, E, G, purple ) );
+	// // Left wall
+	// triangles.push_back( Triangle( A, E, C, purple ) );
+	// triangles.push_back( Triangle( C, E, G, purple ) );
 
-	// Right wall
-	triangles.push_back( Triangle( F, B, D, yellow ) );
-	triangles.push_back( Triangle( H, F, D, yellow ) );
+	// // Right wall
+	// triangles.push_back( Triangle( F, B, D, yellow ) );
+	// triangles.push_back( Triangle( H, F, D, yellow ) );
 
-	// Ceiling
-	triangles.push_back( Triangle( E, F, G, cyan ) );
-	triangles.push_back( Triangle( F, H, G, cyan ) );
+	// // Ceiling
+	// triangles.push_back( Triangle( E, F, G, cyan ) );
+	// triangles.push_back( Triangle( F, H, G, cyan ) );
 
-	// Back wall
-	triangles.push_back( Triangle( G, D, C, white ) );
+	// // Back wall
+	// triangles.push_back( Triangle( G, D, C, white ) );
 	triangles.push_back( Triangle( G, H, D, white ) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
 
-	A = vec3(290,0,114);
-	B = vec3(130,0, 65);
-	C = vec3(240,0,272);
-	D = vec3( 82,0,225);
+	// A = vec3(290,0,114);
+	// B = vec3(130,0, 65);
+	// C = vec3(240,0,272);
+	// D = vec3( 82,0,225);
 
-	E = vec3(290,165,114);
-	F = vec3(130,165, 65);
-	G = vec3(240,165,272);
-	H = vec3( 82,165,225);
+	// E = vec3(290,165,114);
+	// F = vec3(130,165, 65);
+	// G = vec3(240,165,272);
+	// H = vec3( 82,165,225);
 
-	// Front
-	triangles.push_back( Triangle(E,B,A,red) );
-	triangles.push_back( Triangle(E,F,B,red) );
+	// // Front
+	// triangles.push_back( Triangle(E,B,A,red) );
+	// triangles.push_back( Triangle(E,F,B,red) );
 
-	// Front
-	triangles.push_back( Triangle(F,D,B,red) );
-	triangles.push_back( Triangle(F,H,D,red) );
+	// // Front
+	// triangles.push_back( Triangle(F,D,B,red) );
+	// triangles.push_back( Triangle(F,H,D,red) );
 
-	// BACK
-	triangles.push_back( Triangle(H,C,D,red) );
-	triangles.push_back( Triangle(H,G,C,red) );
+	// // BACK
+	// triangles.push_back( Triangle(H,C,D,red) );
+	// triangles.push_back( Triangle(H,G,C,red) );
 
-	// LEFT
-	triangles.push_back( Triangle(G,E,C,red) );
-	triangles.push_back( Triangle(E,A,C,red) );
+	// // LEFT
+	// triangles.push_back( Triangle(G,E,C,red) );
+	// triangles.push_back( Triangle(E,A,C,red) );
 
-	// TOP
-	triangles.push_back( Triangle(G,F,E,red) );
-	triangles.push_back( Triangle(G,H,F,red) );
+	// // TOP
+	// triangles.push_back( Triangle(G,F,E,red) );
+	// triangles.push_back( Triangle(G,H,F,red) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
 
-	A = vec3(423,0,247);
-	B = vec3(265,0,296);
-	C = vec3(472,0,406);
-	D = vec3(314,0,456);
+	// A = vec3(423,0,247);
+	// B = vec3(265,0,296);
+	// C = vec3(472,0,406);
+	// D = vec3(314,0,456);
 
-	E = vec3(423,330,247);
-	F = vec3(265,330,296);
-	G = vec3(472,330,406);
-	H = vec3(314,330,456);
+	// E = vec3(423,330,247);
+	// F = vec3(265,330,296);
+	// G = vec3(472,330,406);
+	// H = vec3(314,330,456);
 
-	// Front
-	triangles.push_back( Triangle(E,B,A,blue) );
-	triangles.push_back( Triangle(E,F,B,blue) );
+	// // Front
+	// triangles.push_back( Triangle(E,B,A,blue) );
+	// triangles.push_back( Triangle(E,F,B,blue) );
 
-	// Front
-	triangles.push_back( Triangle(F,D,B,blue) );
-	triangles.push_back( Triangle(F,H,D,blue) );
+	// // Front
+	// triangles.push_back( Triangle(F,D,B,blue) );
+	// triangles.push_back( Triangle(F,H,D,blue) );
 
-	// BACK
-	triangles.push_back( Triangle(H,C,D,blue) );
-	triangles.push_back( Triangle(H,G,C,blue) );
+	// // BACK
+	// triangles.push_back( Triangle(H,C,D,blue) );
+	// triangles.push_back( Triangle(H,G,C,blue) );
 
-	// LEFT
-	triangles.push_back( Triangle(G,E,C,blue) );
-	triangles.push_back( Triangle(E,A,C,blue) );
+	// // LEFT
+	// triangles.push_back( Triangle(G,E,C,blue) );
+	// triangles.push_back( Triangle(E,A,C,blue) );
 
-	// TOP
-	triangles.push_back( Triangle(G,F,E,blue) );
-	triangles.push_back( Triangle(G,H,F,blue) );
+	// // TOP
+	// triangles.push_back( Triangle(G,F,E,blue) );
+	// triangles.push_back( Triangle(G,H,F,blue) );
 
 
 	// ----------------------------------------------

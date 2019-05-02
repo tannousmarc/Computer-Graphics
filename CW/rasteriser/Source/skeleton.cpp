@@ -12,9 +12,9 @@
 #define FOCAL_LENGTH SCREEN_HEIGHT
 
 void transformToClippingSpace(vector<vec4>& vertices, Camera cam);
-int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, int axis);
-
-
+int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis);
+void BarycentricDrawPixels(vector<Pixel>& vertexPixels, vec3 color, screen* screen, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, Camera lightCamera, vec4 normal, vec3 reflectance, int hasTexture, SDL_Surface* texture_surface);
+void perspectiveDivide(vector<Vertex>& vertices);
 
 const float f = 10;
 // const float n = SCREEN_HEIGHT;
@@ -24,6 +24,13 @@ const float r = 1;
 const float l = -1;
 const float b = -1;
 
+// float CLIPPING_ARR[16] = {
+//         2 , 0               , 0                      , 0  ,
+//         0               , 2 , 0                      , 0  ,
+//         0 , 0 , - (f + n)/(f - n)      , -1 ,
+//         0               , 0               , -(2 * f * n) / (f - n) , 0
+// };
+
 float CLIPPING_ARR[16] = {
         2 * n / (r - l) , 0               , 0                      , 0  ,
         0               , 2 * n / (t - b) , 0                      , 0  ,
@@ -31,6 +38,12 @@ float CLIPPING_ARR[16] = {
         0               , 0               , -(2 * f * n) / (f - n) , 0
 };
 
+float _VIEWPORT_TRANSFORM_ARRAY[16] = {
+0.5 , 0   , 0   , 0 ,
+0   , 0.5 , 0   , 0 ,
+0   , 0   , 0.5 , 0 ,
+0.5 , 0.5 , 0.5 , 1
+};
 
 // float CLIPPING_ARR[16] = {
 //         SCREEN_WIDTH/2 , 0               , 0                      , SCREEN_WIDTH/2  ,
@@ -39,7 +52,7 @@ float CLIPPING_ARR[16] = {
 //         0               , 0               , 0 , 1
 // };
 mat4 CLIP_SPACE_TRANSFORM;
-
+mat4 VIEWPORT_TRANSFORM;
 
 
 vec3 currentPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -48,6 +61,8 @@ int currentMaximumX = SCREEN_HEIGHT, currentMaximumY = SCREEN_WIDTH;
 int doAntiAliasing = 0;
 int doShadows = 0;
 int doClipping = 0;
+
+vector<vec3> prevPos3ds;
 vec3 zero(0, 0, 0);
 // w = z / f
 
@@ -68,29 +83,34 @@ Camera getLightCamera(Light light){
 
 vec3 prevPos3d(0,0,0);
 
-inline void VertexShaderClipping(const Vertex& v, Pixel& p, Camera cam){
-  // vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
-  vec4 vNew = v.position;
-  // p.pos3d = vec3(v.position.x, v.position.y, v.position.z);
-  p.pos3d = prevPos3d;
+// inline void VertexShaderClipping(const Vertex& v, Pixel& p, Camera cam){
+//   // vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
+//   vec4 vNew = v.position;
+//   // p.pos3d = vec3(v.position.x, v.position.y, v.position.z);
+//   p.pos3d = vec3(prevPos3d.x, prevPos3d.y, prevPos3d.z);
 
-  // if(vNew.z < 0.001)
-  //   return;
+//   // if(vNew.z < 0.001)
+//   //   return;
 
-  // vNew.w = v.position.w * (cam.cameraRotationX * cam.cameraRotationY);
-  // cout << cam.focalLength << " " << vNew.z << " " << vNew.w << " " << v.position.w << " A: " << vNew.x / v.position.w + (SCREEN_WIDTH / 2) << " B: " <<  (cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2) << endl;
-  // p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
-  p.x = (int) ((vNew.x / vNew.w) + (SCREEN_WIDTH / 2));
-  // p.y = (int) ((cam.focalLength * vNew.y / vNew.z)  + (SCREEN_HEIGHT / 2));
-  p.y = (int) ((vNew.y / vNew.w) + (SCREEN_HEIGHT) / 2);
+//   // vNew.w = v.position.w * (cam.cameraRotationX * cam.cameraRotationY);
+//   // cout << cam.focalLength << " " << vNew.z << " " << vNew.w << " " << v.position.w << " A: " << vNew.x / v.position.w + (SCREEN_WIDTH / 2) << " B: " <<  (cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2) << endl;
+//   // p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
+//   p.x = (int) ((vNew.x / vNew.w) + (SCREEN_WIDTH / 2));
+//   // p.y = (int) ((cam.focalLength * vNew.y / vNew.z)  + (SCREEN_HEIGHT / 2));
+//   p.y = (int) ((vNew.y / vNew.w) + (SCREEN_HEIGHT) / 2);
 
-  // IMPARTE LA vNew.w
-  p.zinv = (float) (1.0f / vNew.z);
-  // p.zinv = (float) 1.0f / (cam.focalLength * vNew.w);
+//   // if(doClipping){
+//   //   p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
+//   //   p.y = (int) ((cam.focalLength * vNew.y / vNew.z)  + (SCREEN_HEIGHT / 2));
+//   // }
+
+//   // IMPARTE LA vNew.w
+//   p.zinv = (float) (1.0f / vNew.z);
+//   // p.zinv = (float) 1.0f / (cam.focalLength * vNew.w);
   
-  p.textureX = v.texturePosition.x;
-  p.textureY = v.texturePosition.y;
-}
+//   p.textureX = v.texturePosition.x;
+//   p.textureY = v.texturePosition.y;
+// }
 
 inline void VertexShader(const Vertex& v, Pixel& p, Camera cam){
 
@@ -115,6 +135,30 @@ inline void VertexShader(const Vertex& v, Pixel& p, Camera cam){
   
   p.textureX = v.texturePosition.x;
   p.textureY = v.texturePosition.y;
+}
+
+void VertexShaderClipping(const Vertex& v, VertexProperties &props, Pixel &p){
+  // p.pos3d = vec3(props.relativePosition.x, props.relativePosition.y, props.relativePosition.z);
+  p.pos3d = props.initialPosition;
+  vec4 pixelVertex = VIEWPORT_TRANSFORM * v.position;
+  p.x = (v.position.x / v.position.w) + (SCREEN_WIDTH / 2);
+  p.y = (v.position.y / v.position.w) + (SCREEN_HEIGHT / 2);
+  // p.x = int(SCREEN_WIDTH * pixelVertex.x);
+  // p.y = int(SCREEN_HEIGHT * pixelVertex.y);
+
+  // p.zinv = (float) (1.0f / v.position.z);
+  p.zinv = props.zinv;
+
+  p.textureX = props.texturePos.x;
+  p.textureY = props.texturePos.y;
+}
+
+void RememberPropertiesClipping(const Vertex &v, VertexProperties &properties, Camera cam){
+  properties.initialPosition = vec3(v.position.x, v.position.y, v.position.z);
+  properties.texturePos = v.texturePosition;
+  vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
+  properties.relativePosition = vNew;
+  properties.zinv = 1 / vNew.z;
 }
 
 void PixelShader(const Pixel& p, vec3 color, screen* screen, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, vec4 normal, vec3 reflectance){
@@ -224,30 +268,31 @@ int isInsideFrustrum(Vertex v){
 				abs(position.z) <= abs(position.w);
 }
 
- void DrawPolygon(screen *screen, vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, Camera lightCamera, vec4 normal, vec3 reflectance, bool hasTexture, SDL_Surface* texture_surface, bool afterClipping){
+ void DrawPolygon(screen *screen, vector<Vertex>& vertices, Camera cam, vec3 color, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, Camera lightCamera, vec4 normal, vec3 reflectance, bool hasTexture, SDL_Surface* texture_surface){
    int V = vertices.size();
    vector<Pixel> vertexPixels(V);
-
-   if(!afterClipping){
-    for(int i = 0; i < V; i++){
-      VertexShader(vertices[i], vertexPixels[i], cam);
-    }
-   }else{
-     for(int i = 0; i < V; i++){
-      VertexShaderClipping(vertices[i], vertexPixels[i], cam);
-    }
-   }
-
+   
+  //  if(!doClipping){
+    
+  //  }else if(afterClipping){
+  //    for(int i = 0; i < V; i++){
+  //     VertexShaderClipping(vertices[i], vertexPixels[i], cam);
+  //   }
+  //  }
   
-    if(doClipping && !afterClipping){
-      vector<vec4> positions;
+  if(doClipping){
+      vector<vec4> positions(3);
+      vector<VertexProperties> properties(3);
+      
+      // VertexShaderClipping
       for(int i = 0; i < V; i++){
-        vertices[i].position = (vertices[i].position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
+        RememberPropertiesClipping(vertices[i], properties[i], cam);
+        positions[i] = ((vertices[i].position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY));
       }
 
-      positions.push_back(vertices[0].position);
-      positions.push_back(vertices[1].position);
-      positions.push_back(vertices[2].position);
+      // positions.push_back(vertices[0].position);
+      // positions.push_back(vertices[1].position);
+      // positions.push_back(vertices[2].position);
       // cout << "POS BEFORE " << positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl;
       transformToClippingSpace(positions, cam);
       // cout << "POS AFTER " << positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl;
@@ -265,35 +310,110 @@ int isInsideFrustrum(Vertex v){
       vertices[2].position = positions[2];
 
       vector<Vertex> resultingVertices;
+      vector<VertexProperties> resultingProperties;
+      if(clipTriangleAxis(vertices, resultingVertices, properties, resultingProperties, 0) &&
+      clipTriangleAxis(vertices, resultingVertices, properties, resultingProperties, 1)){
 
+        // cout << vertices.size() << endl;
+
+        // perspectiveDivide(vertices);
+
+        //  for(size_t v = 0; v < vertices.size(); v++){
+        //    vertices[v].position.x = vertices[v].position.x / vertices[v].position.w;
+        //    vertices[v].position.y = vertices[v].position.y / vertices[v].position.w;
+        //    vertices[v].position.z = vertices[v].position.z / vertices[v].position.w;
+        //    vertices[v].position.w = 1;
+        //  }
+
+         vector<VertexProperties> currentTriangleProperties(3);
+         vector<Pixel> currentPixels(3);
+
+         vector<Pixel> pixels(vertices.size());
+
+         for(size_t v = 0; v < vertices.size(); v++){
+            // if(vertices[v].position.w == 0)
+            //   vertices[v].position.w = 1;
+
+            VertexShaderClipping(vertices[v], properties[v], pixels[v]);
+         }
+
+        //  cout << " ---------------------------------------- " << endl;
+        //   for (int i = 0; i < vertices.size(); i++){
+        //     cout << "VERTEX CLIP " << i << " IS " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << endl;
+        //   }
+
+        //   cout << " ---------------------------------------- " << endl;
+          // for (int i = 0; i < pixels.size(); i++){
+          //   PutPixelSDL(screen, pixels[i].x, pixels[i].y, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x-1, pixels[i].y, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x+1, pixels[i].y, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x, pixels[i].y-1, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x-1, pixels[i].y-1, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x+1, pixels[i].y-1, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x, pixels[i].y+1, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x-1, pixels[i].y+1, vec3(0.75f, 0.15f, 0.15f));
+          //   PutPixelSDL(screen, pixels[i].x+1, pixels[i].y+1, vec3(0.75f, 0.15f, 0.15f));
+          // }
+        //  cout << " ---------------------------------------- " << endl;
+        //   for (int i = 0; i < pixels.size(); i++){
+        //     cout << "PIXEL " << i << " IS " << pixels[i].x << " " << pixels[i].y << endl;
+        //   }
+
+        //   cout << " ---------------------------------------- " << endl;
+         
+          for(size_t v = 1; v < vertices.size()-1; v++){
+
+              vector<Vertex> currentTriangleVertices(3);
+
+              currentTriangleVertices[0] = vertices[0];
+              currentTriangleVertices[1] = vertices[v];
+              currentTriangleVertices[2] = vertices[v+1];
+
+
+              currentTriangleProperties[0] = properties[0];
+              currentTriangleProperties[1] = properties[v];
+              currentTriangleProperties[2] = properties[v+1];
+
+              currentPixels[0] = pixels[0];
+              currentPixels[1] = pixels[v];
+              currentPixels[2] = pixels[v+1];
+              
+              // for (int i = 0; i < currentPixels.size(); i++){
+              //   cout << "CURRENT PIXEL " << i << " IS " << currentPixels[i].x << " " << currentPixels[i].y << endl;
+              // }
+
+              // cout << "AFTER ONE: " << currentTriangleVertices[0].position.x << " " << currentTriangleVertices[0].position.y << " " << currentTriangleVertices[0].position.z << " " << currentTriangleVertices[0].position.w << " " << endl;
+              // cout << "AFTER TWO: " << currentTriangleVertices[1].position.x << " " << currentTriangleVertices[1].position.y << " " << currentTriangleVertices[1].position.z << " " << currentTriangleVertices[v].position.w << " " <<endl;
+              // cout << "AFTER THREE: " << currentTriangleVertices[2].position.x << " " << currentTriangleVertices[2].position.y << " " << currentTriangleVertices[2].position.z << " " << currentTriangleVertices[v+1].position.w << " " <<endl;
+
+              // cout << "SHOULD BE DRAWING?" << endl;
+
+              BarycentricDrawPixels(currentPixels, color, screen, depthBuffer, shadowMap, light, lightCamera, normal, reflectance, hasTexture, texture_surface);
+            }
+          
+      }
+      
+      
+      // for(int i = 0; i < V; i++){
+      //   VertexShaderClipping(vertices[i], properties[i], vertexPixels[i]);
+      // }
       // cout << "Positions: "<< positions[0].x << " " << positions[0].y << " " << positions[0].z << " " << positions[0].w << endl
       //   << positions[1].x << " " << positions[1].y << " " << positions[1].z << " " << positions[1].w << endl
       //   << positions[2].x << " " << positions[2].y << " " << positions[2].z << " " << positions[2].w << endl;
       // cout << "IN DRAW" << endl;
-
-      if(clipTriangleAxis(vertices, resultingVertices, 0)){
-          cout << vertices.size() << endl;
-          vector<Vertex> currentTriangleVertices(3);
-            for(size_t v = 1; v < vertices.size()-1; v++){
-              currentTriangleVertices[0] = vertices[0];
-              currentTriangleVertices[1] = vertices[v];
-              currentTriangleVertices[2] = vertices[v+1];
-              cout << "AFTER ONE: " << currentTriangleVertices[0].position.x << " " << currentTriangleVertices[0].position.y << " " << currentTriangleVertices[0].position.z << " " << currentTriangleVertices[0].position.w << " " << endl;
-              cout << "AFTER TWO: " << currentTriangleVertices[v].position.x << " " << currentTriangleVertices[v].position.y << " " << currentTriangleVertices[v].position.z << " " << currentTriangleVertices[v].position.w << " " <<endl;
-              cout << "AFTER THREE: " << currentTriangleVertices[v+1].position.x << " " << currentTriangleVertices[v+1].position.y << " " << currentTriangleVertices[v+1].position.z << " " << currentTriangleVertices[v+1].position.w << " " <<endl;
-
-              cout << "SHOULD BE DRAWING?" << endl;
-              DrawPolygon(screen, currentTriangleVertices, cam, color,
-                depthBuffer, shadowMap, light, lightCamera, normal, reflectance, hasTexture, NULL, 1);
-            }
-          // }
-        }
-        return;
+      // BarycentricDrawPixels(vertexPixels, color, screen, depthBuffer, shadowMap, light, lightCamera, normal, reflectance, hasTexture, texture_surface);
+      
+      return;
+  }else{
+    for(int i = 0; i < V; i++){
+      VertexShader(vertices[i], vertexPixels[i], cam);
     }
+    BarycentricDrawPixels(vertexPixels, color, screen, depthBuffer, shadowMap, light, lightCamera, normal, reflectance, hasTexture, texture_surface);
+  }
+ }
 
 
-   vector<Pixel> leftPixels;
-   vector<Pixel> rightPixels;
+ void BarycentricDrawPixels(vector<Pixel>& vertexPixels, vec3 color, screen* screen, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, Camera lightCamera, vec4 normal, vec3 reflectance, int hasTexture, SDL_Surface* texture_surface){
 
    int maxX = -numeric_limits<int>::max(); 
    int minX = numeric_limits<int>::max();;
@@ -377,9 +497,6 @@ int isInsideFrustrum(Vertex v){
        }
      }
    }
-
-  //  ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
-  //  DrawPolygonRows(screen, leftPixels, rightPixels, color, depthBuffer, light, normal, reflectance);
  }
 
 inline void VertexShaderShadow(const Vertex& v, Pixel& p, Camera cam){
@@ -477,6 +594,7 @@ int main( int argc, char* argv[] )
 {
   // memcpy( glm::value_ptr( CLIP_SPACE_TRANSFORM ), CLIPPING_ARR, sizeof( CLIPPING_ARR ) );
   CLIP_SPACE_TRANSFORM = glm::make_mat4(CLIPPING_ARR);
+  VIEWPORT_TRANSFORM = glm::make_mat4(_VIEWPORT_TRANSFORM_ARRAY);
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -547,6 +665,17 @@ Vertex interpolate(Vertex first, Vertex last, float t) {
 
 }
 
+VertexProperties interpolateProperties(VertexProperties first, VertexProperties last, float amount){
+  VertexProperties result;
+  // cout << "INTERPOLATES PROPERTIES, AMOUNT IS " << amount << endl; 
+  result.zinv = first.zinv * (1-amount) + last.zinv * amount;
+  result.relativePosition = first.relativePosition * (1-amount) + last.relativePosition * amount;
+  result.initialPosition = first.initialPosition * (1 - amount) + last.initialPosition * amount;
+  result.texturePos.x = first.texturePos.x * (1 - amount) + last.texturePos.x * amount;
+  result.texturePos.y = first.texturePos.y * (1 - amount) + last.texturePos.y * amount;
+  return result;
+}
+
 float getPositionByAxis(Vertex v, int axis){
   if(axis == 0) return v.position.x;
   if(axis == 1) return v.position.y;
@@ -554,47 +683,77 @@ float getPositionByAxis(Vertex v, int axis){
   return v.position.w;
 }
 
-void clipHelper(vector<Vertex> &vertices, vector<Vertex> &resultingVertices,
-                  int axis, float factor){
+void clipHelper(vector<Vertex> &vertices, vector<Vertex> &resultingVertices, 
+  vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis, float factor){
+  // cout << " ---------------------------------------- " << endl;
+  // for (int i = 0; i < vertices.size(); i++){
+  //   cout << "INITIAL VERTEX " << i << " IS " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << endl;
+  // }
+
+  // cout << " ---------------------------------------- " << endl;
   Vertex previousVertex = vertices[vertices.size() - 1];
-  float previousComponent = getPositionByAxis(previousVertex, axis) * factor;
+  VertexProperties previousProperties = properties[properties.size() - 1];
+  float previousComponent = (getPositionByAxis(previousVertex, axis)) * factor;
   unsigned int previousInside = (previousComponent <= previousVertex.position.w);
   for(size_t i = 0; i < vertices.size(); i++){
     Vertex currentVertex = vertices[i];
-    float currentComponent = getPositionByAxis(currentVertex, axis) * factor;
+    VertexProperties currentProperties = properties[i];
+    float currentComponent = (getPositionByAxis(currentVertex, axis)) * factor;
     int currentInside = currentComponent <= currentVertex.position.w;
+    // cout << "Current component " << currentComponent << ", current w " << currentVertex.position.w << endl;
     
     if(currentInside ^ previousInside){
       float interpolateAmount = (previousVertex.position.w - previousComponent) /
         ((previousVertex.position.w - previousComponent) -
          (currentVertex.position.w - currentComponent));
-      resultingVertices.push_back(interpolate(previousVertex, currentVertex, interpolateAmount));
+      
+      Vertex toPushBack;
+      toPushBack.position = previousVertex.position + interpolateAmount * (currentVertex.position - previousVertex.position);
+      resultingVertices.push_back(toPushBack);
+      // cout << "CURRENT VERTEX POSITION IS " << currentVertex.position.x << " " << currentVertex.position.y << " " << currentVertex.position.z << " " << currentVertex.position.w << endl;
+      // cout << "PREVIOUS VERTEX POSITION IS " << previousVertex.position.x << " " << previousVertex.position.y << " " << previousVertex.position.z << " " <<previousVertex.position.w << endl;
+      // cout << "TO PUSH VERTEX POSITION IS " << toPushBack.position.x << " " << toPushBack.position.y << " " << toPushBack.position.z <<" " << toPushBack.position.w << endl;
+      resultingProperties.push_back(interpolateProperties(previousProperties, currentProperties, interpolateAmount));
+      // resultingVertices.push_back(interpolate(previousVertex, currentVertex, interpolateAmount));
     }
 
     if(currentInside){
       resultingVertices.push_back(currentVertex);
+      resultingProperties.push_back(currentProperties);
     }
     previousVertex = currentVertex;
+    previousProperties = currentProperties;
     previousComponent = currentComponent;
     previousInside = currentInside;
-    // float current
+    // float currente
   }
+  // cout << " ---------------------------------------- " << endl;
+  // for (int i = 0; i < resultingVertices.size(); i++){
+  //   cout << "RESULTING VERTEX " << i << " IS " << resultingVertices[i].position.x << " " << resultingVertices[i].position.y << " " << resultingVertices[i].position.z << " " << resultingVertices[i].position.w << endl;
+  // }
+
+  // cout << " ---------------------------------------- " << endl;
 };
 
 
-int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, int axis){
+// 0.00313f
 
-  clipHelper(vertices, resultingList, axis, 1.0f);
+int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis){
+
+  clipHelper(vertices, resultingList, properties, resultingProperties, axis, 0.00313f);
   vertices.clear();
+  properties.clear();
 
   if(resultingList.empty()){
     return 0;
   }
 
-  clipHelper(resultingList, vertices, axis, -1.0f);
+  clipHelper(resultingList, vertices, resultingProperties, properties, axis, -0.00313f);
   resultingList.clear();
-
-  // cout << "GETS HERE " << !vertices.empty() << endl;
+  resultingProperties.clear();
+  // vertices = resultingList;
+  // properties = resultingProperties;
+  // // cout << "GETS HERE " << !vertices.empty() << endl;
   return !vertices.empty();
 }
 
@@ -605,7 +764,8 @@ void transformToClippingSpace(vector<vec4>& vertices, Camera cam){
   //   vertices[i] = CLIP_SPACE_TRANSFORM * vertices[i];
   // }
   for(size_t i = 0; i < vertices.size(); i++){
-    vertices[i].w = vertices[i].z / cam.focalLength;
+    // vertices[i].w = vertices[i].z / cam.focalLength;
+    vertices[i].w = vertices[i].z / SCREEN_HEIGHT;
   }
 }
 
@@ -692,7 +852,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
 
     // Clipping should happen here!
 
-    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, triangles[i].hasTexture, NULL, 0);
+    DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, triangles[i].hasTexture, NULL);
     }
 
     for(uint32_t i = 0; i < objects.size(); i++){
@@ -709,7 +869,7 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
       vertices[1].texturePosition = objects[i].triangles[j].uv1;
       vertices[2].texturePosition = objects[i].triangles[j].uv2;
 
-      DrawPolygon(screen, vertices, cam, objects[i].triangles[j].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, objects[i].triangles[j].hasTexture, objects[i].texture_surface, 0);
+      DrawPolygon(screen, vertices, cam, objects[i].triangles[j].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, objects[i].triangles[j].hasTexture, objects[i].texture_surface);
       }
     }
 
