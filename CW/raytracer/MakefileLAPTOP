@@ -8,10 +8,11 @@ B_DIR=Build
 ########
 #   Output
 EXEC=$(B_DIR)/$(FILE)
+
 # default build settings
-CC_OPTS=-c -fopenmp -std=c++11 -pipe -Wno-switch -ggdb -g3
+CC_OPTS=-c -fopenmp -std=c++11 -Wall -pipe -Wno-switch -ggdb -g3
 LN_OPTS=-fopenmp
-CC=g++ -Ofast
+CC=/usr/local/opt/llvm/bin/clang++ -Ofast
 
 ########
 #       SDL options
@@ -44,3 +45,4 @@ Build : $(OBJ) Makefile
 
 clean:
 	rm -f $(B_DIR)/*
+

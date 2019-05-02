@@ -380,7 +380,7 @@ void LoadTestModelGlassCube( std::vector<Triangle>& triangles )
 	vec4 G(L,L,L,1);
 	vec4 H(0,L,L,1);
 
-	
+
 	// Floor:
 	triangles.push_back( Triangle( C, B, A, red) );
 	triangles.push_back( Triangle( C, D, B, red ) );
@@ -536,19 +536,19 @@ void LoadTestModelNone( std::vector<Triangle>& triangles )
 	// ---------------------------------------------------------------------------
 // Tall block
 
-A = vec4(323,0,347,1);
-B = vec4(165,0,396,1);
-C = vec4(472,0,406,1);
-D = vec4(314,0,456,1);
-
-E = vec4(323,330,347,1);
-F = vec4(165,330,396,1);
-G = vec4(472,330,406,1);
-H = vec4(314,330,456,1);
+// A = vec4(323,0,347,1);
+// B = vec4(165,0,396,1);
+// C = vec4(472,0,406,1);
+// D = vec4(314,0,456,1);
 //
-// Front
-triangles.push_back( Triangle(E,B,A,black, Material("mirror")) );
-triangles.push_back( Triangle(E,F,B,black, Material("mirror")) );
+// E = vec4(323,330,347,1);
+// F = vec4(165,330,396,1);
+// G = vec4(472,330,406,1);
+// H = vec4(314,330,456,1);
+// //
+// // Front
+// triangles.push_back( Triangle(E,B,A,black, Material("mirror")) );
+// triangles.push_back( Triangle(E,F,B,black, Material("mirror")) );
 
 	// ----------------------------------------------
 	// Scale to the volume [-1,1]^3
