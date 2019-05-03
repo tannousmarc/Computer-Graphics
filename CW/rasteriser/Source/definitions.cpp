@@ -61,35 +61,10 @@ struct VertexProperties{
   float zinv;
 };
 
-
+// 640 x 640 1000 x 1000
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
 #define FULLSCREEN_MODE true
 
-void Update(Camera &cam, Light &light);
+void Update(Camera &cam, Light &light, vector<Triangle>& triangles, vector<RenderedObject>& objects);
 void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& objects, Camera cam, Light light);
-
-// struct Intersection
-// {
-//   vec4 position;
-//   float distance;
-//   int triangleIndex;
-// };
-
-// struct Light{
-//   vec4 lightPos;
-//   vec3 lightColor;
-// };
-
-// #define SCREEN_WIDTH 1024
-// #define SCREEN_HEIGHT 1024
-// #define FULLSCREEN_MODE true
-
-// #define SOFT_SHADOW_DISPLACEMENT 0
-// #define ANTI_ALIASING_MODE true
-
-// #define INDIRECT_LIGHT_FACTOR 0.25f
-
-// void Update(Camera& cam);
-
-// void Draw(screen* screen, vector<Triangle>& triangles, Camera& cam, Light& light);

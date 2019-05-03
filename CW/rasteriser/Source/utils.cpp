@@ -3,7 +3,7 @@
 // CAMERA/LIGHT POSITIONS
 void reset_camera(Camera &cam){
   cam.focalLength = SCREEN_HEIGHT;
-  cam.cameraPos = vec4(0,0,-3.001,1);
+  cam.cameraPos = vec4(-0.005,0,-3.001,1);
   // I4
   cam.cameraRotationY = mat4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
   cam.cameraRotationX = mat4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
@@ -130,8 +130,6 @@ void normaliseTriangles(vector<Triangle>& rawTriangles, float scale = 1,
   }
 }
 
-// GET TEXTURE PIXEL AT POSITION
-// TODO
 vec3 getTextureAt(SDL_Surface *surface, int x, int y)
 {
   int bytes_per_pixel = surface->format->BytesPerPixel;

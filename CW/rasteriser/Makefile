@@ -1,4 +1,4 @@
-FILE=skeleton
+FILE=rasteriser
 
 ########
 #   Directories
@@ -12,9 +12,10 @@ EXEC=$(B_DIR)/$(FILE)
 # fopenmp
 # default build settings
 # CC_OPTS=-Ofast -std=c++11 -qopenmp -c -Wall -pipe -Wno-switch -ggdb -g3 
-CC_OPTS=-Ofast -std=c++11 -c -Wall -pipe -Wno-switch -ggdb -g3 
-# LN_OPTS=-qopenmp
-# CC=icpc
+CC_OPTS =-Ofast -std=c++11 -fopenmp -c -Wall -pipe -Wno-switch -ggdb -g3 
+# CC_OPTS=-Ofast -std=c++11 -c -Wall -pipe -Wno-switch -ggdb -g3 
+# LN_OPTS=-fopenmp
+# CC=/usr/local/opt/llvm/bin/clang++ -Ofast
 LN_OPTS=
 CC=g++
 
