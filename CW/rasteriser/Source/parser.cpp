@@ -8,6 +8,7 @@ glm::vec4 toVec4(glm::vec3 ceva){
     return vec4(ceva.x, ceva.y, ceva.z, 1);
 }
 
+// Split function
 inline void split(const std::string &input,
 			std::vector<std::string> &output,
 			std::string token){
@@ -65,6 +66,7 @@ inline std::string firstToken(const std::string &in){
     return "";
 }
 
+// Takes in the file's path and creates triangles from the .obj
 bool loadGivenFile(std::string Path, vector<Triangle>& triangles){
 			if (Path.substr(Path.size() - 4, 4) != ".obj")
 				return false;

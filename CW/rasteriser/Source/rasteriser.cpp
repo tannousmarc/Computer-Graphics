@@ -10,7 +10,7 @@
 
 
 void transformToClippingSpace(vector<vec4>& vertices, Camera cam);
-int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis);
+int clipTriangleOnNumberedAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis);
 void BarycentricDrawPixels(vector<Pixel>& vertexPixels, vec3 color, screen* screen, float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH], float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH], Light light, Camera lightCamera, vec4 normal, vec3 reflectance, int hasTexture, SDL_Surface* texture_surface);
 
 vec3 currentPixels[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -23,6 +23,7 @@ float clippingFactor = 0.00313f / ((float)SCREEN_HEIGHT / 640.0);
 
 vec3 zero(0, 0, 0);
 
+// Load normal scene
 void LoadInitialScene(vector<Triangle> &triangles, vector<RenderedObject>& objects){
   triangles.clear();
   objects.clear();
@@ -32,6 +33,7 @@ void LoadInitialScene(vector<Triangle> &triangles, vector<RenderedObject>& objec
   }
 }
 
+// Load temple and dog scene
 void LoadTempleAndDog(vector<Triangle> &triangles, vector<RenderedObject>& objects){
   triangles.clear();
   objects.clear();
@@ -95,8 +97,8 @@ void LoadTempleAndDog(vector<Triangle> &triangles, vector<RenderedObject>& objec
 
   RenderedObject temple = LoadObject("Objects/Temple/temple.obj");
   normaliseTriangles(temple.triangles,
-                     0.47, 
-                     -0.2, -1.05, 0.1,
+                     0.7, 
+                     -0.3, -0.7, 0.1,
                      3.1, 0, 0,
                      1, -1, -1);
   temple.texture_surface = SDL_LoadBMP("Objects/Temple/temple.bmp");
@@ -105,7 +107,7 @@ void LoadTempleAndDog(vector<Triangle> &triangles, vector<RenderedObject>& objec
   RenderedObject dog = LoadObject("Objects/DogMaya/dog.obj");
   normaliseTriangles(dog.triangles,
                      1.6, 
-                     0.6, -0.6, -0.8,
+                     0.4, -0.6, 0.0,
                      1.8f, 0, 0,
                      1, -1, -1);
   dog.texture_surface = SDL_LoadBMP("Objects/DogMaya/Dog_diffuse.bmp");
@@ -126,12 +128,9 @@ Camera getLightCamera(Light light){
    return lightCamera;
 }
 
-vec3 prevPos3d(0,0,0);
-
 inline void VertexShader(const Vertex& v, Pixel& p, Camera cam){
   vec4 vNew = (v.position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY);
   p.pos3d = vec3(v.position.x, v.position.y, v.position.z);
-  prevPos3d = p.pos3d;
   p.x = (int) ((cam.focalLength * vNew.x / vNew.z) + (SCREEN_WIDTH / 2));
   p.y = (int) ((cam.focalLength * vNew.y / vNew.z)  + (SCREEN_HEIGHT / 2));
   p.zinv = (float) (1.0f / vNew.z);
@@ -139,6 +138,7 @@ inline void VertexShader(const Vertex& v, Pixel& p, Camera cam){
   p.textureY = v.texturePosition.y;
 }
 
+// The vertex shader used in the clipping procedure
 void VertexShaderClipping(const Vertex& v, VertexProperties &props, Pixel &p){
   p.pos3d = props.initialPosition;
   p.x = (v.position.x / v.position.w) + (SCREEN_WIDTH / 2);
@@ -148,6 +148,7 @@ void VertexShaderClipping(const Vertex& v, VertexProperties &props, Pixel &p){
   p.textureY = props.texturePos.y;
 }
 
+// Keep track of the initial properties of the vertices, as to use later on
 void RememberPropertiesClipping(const Vertex &v, VertexProperties &properties, Camera cam){
   properties.initialPosition = vec3(v.position.x, v.position.y, v.position.z);
   properties.texturePos = v.texturePosition;
@@ -169,6 +170,7 @@ void PixelShader(const Pixel& p, vec3 color, screen* screen, float depthBuffer[S
     depthBuffer[p.y][p.x] = p.zinv;
 
     if(p.x >= 0 && p.x < SCREEN_WIDTH && p.y >= 0 && p.y < SCREEN_HEIGHT){
+      // Simply put pixel on screen if anti aliasing is not activated, otherwise put it in an image matrix 
       if(!doAntiAliasing){
         PutPixelSDL(screen, p.x, p.y, illumination * color);
       }
@@ -227,14 +229,17 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
    vector<Pixel> vertexPixels(V);
      
   if(doClipping){
+      // Clipping routine
       vector<vec4> positions(3);
       vector<VertexProperties> properties(3);
       
+      // Remember initial properties of the vertices as to use later on
       for(int i = 0; i < V; i++){
         RememberPropertiesClipping(vertices[i], properties[i], cam);
         positions[i] = ((vertices[i].position - cam.cameraPos) * (cam.cameraRotationX * cam.cameraRotationY));
       }
-
+      
+      // Transform to the vec4 positions to the clip space
       transformToClippingSpace(positions, cam);
       
       vertices[0].position = positions[0];
@@ -243,12 +248,15 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
 
       vector<Vertex> resultingVertices;
       vector<VertexProperties> resultingProperties;
-      if(clipTriangleAxis(vertices, resultingVertices, properties, resultingProperties, 0) &&
-      clipTriangleAxis(vertices, resultingVertices, properties, resultingProperties, 1)){
+
+      // If clipping on all of the axes doesn't return a 0 (i.e. the vertices list is not empty)
+      if(clipTriangleOnNumberedAxis(vertices, resultingVertices, properties, resultingProperties, 0) &&
+      clipTriangleOnNumberedAxis(vertices, resultingVertices, properties, resultingProperties, 1)){
 
          vector<Pixel> currentPixels(3);
          vector<Pixel> pixels(vertices.size());
 
+         // Call special vertex shader
          for(size_t v = 0; v < vertices.size(); v++){
             VertexShaderClipping(vertices[v], properties[v], pixels[v]);
          }
@@ -258,7 +266,8 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
               currentPixels[0] = pixels[0];
               currentPixels[1] = pixels[v];
               currentPixels[2] = pixels[v+1];
-
+              
+              // Draw pixels
               BarycentricDrawPixels(currentPixels, color, screen, depthBuffer, shadowMap, light, lightCamera, normal, reflectance, hasTexture, texture_surface);
             }
           
@@ -266,9 +275,11 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
             
       return;
   }else{
+
     for(int i = 0; i < V; i++){
       VertexShader(vertices[i], vertexPixels[i], cam);
     }
+    // Draw pixels
     BarycentricDrawPixels(vertexPixels, color, screen, depthBuffer, shadowMap, light, lightCamera, normal, reflectance, hasTexture, texture_surface);
   }
  }
@@ -281,6 +292,7 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
    int maxYY = -numeric_limits<int>::max();
    int minYY = numeric_limits<int>::max();;
    
+   // Find bounding points for the box
    for(size_t i = 0; i < vertexPixels.size(); i++){
      maxXX = std::max(maxXX, vertexPixels[i].x);
      maxYY = std::max(maxYY, vertexPixels[i].y);
@@ -302,6 +314,8 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
      for(int x = minX; x < maxX; x++){
        if(x < 0 || x >= SCREEN_WIDTH)
         continue;
+       
+       // Find corresponding points as to derive a, b and c factors
        glm::vec2 v0(vertexPixels[1].x - vertexPixels[0].x, vertexPixels[1].y - vertexPixels[0].y);
        glm::vec2 v1(vertexPixels[2].x - vertexPixels[0].x, vertexPixels[2].y - vertexPixels[0].y);
        glm::vec2 v2(x - vertexPixels[0].x, y - vertexPixels[0].y);
@@ -317,6 +331,7 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
        float dot20 = glm::dot(v2, v0);
        float dot21 = glm::dot(v2, v1);
 
+       // Get a, b and c
        float denom = dot00 * dot11 - dot01 * dot01;
        float a = (dot11 * dot20 - dot01 * dot21) / denom;
        float b = (dot00 * dot21 - dot01 * dot20) / denom;
@@ -331,6 +346,7 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
         }
 
         if(doShadows){
+          // If shadows are activated, use the shadow map to get colour of pixel
           Pixel cameraPixel;
           cameraPixel.pos3d = tPixel.pos3d;
           vec4 vNew = (vec4(cameraPixel.pos3d.x,cameraPixel.pos3d.y,cameraPixel.pos3d.z, 1) - lightCamera.cameraPos) * lightCamera.cameraRotationX;
@@ -348,6 +364,7 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
             }
           }
         }else{
+          // Otherwise, simply call pixel shader
           PixelShader(tPixel, color, screen, depthBuffer, shadowMap, light, normal, reflectance);
         }
        }
@@ -355,6 +372,7 @@ void PixelShader(const Pixel& p, const Pixel& cameraPixel, vec3 color, screen* s
    }
  }
 
+// Vertex shader for shadow mapping
 inline void VertexShaderShadow(const Vertex& v, Pixel& p, Camera cam){
     vec4 vNew = (v.position - cam.cameraPos) * cam.cameraRotationX;
 
@@ -370,7 +388,7 @@ inline void VertexShaderShadow(const Vertex& v, Pixel& p, Camera cam){
 
 
 
-
+ // For the shadow map, simply render the image from the point of view of the light, with the shadowMap array used like the depthBuffer
  void DrawShadowMapForTriangle(screen *screen, const vector<Vertex> &vertices, Light light, Camera lightCamera, float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH]){
    int V = vertices.size();
    vector<Pixel> vertexPixels(V);
@@ -461,6 +479,7 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
+// Interpolates two properties based on the distance between the vertices represented by them
 VertexProperties interpolateProperties(VertexProperties first, VertexProperties last, float amount){
   VertexProperties result;
   result.zinv = first.zinv * (1-amount) + last.zinv * amount;
@@ -471,6 +490,7 @@ VertexProperties interpolateProperties(VertexProperties first, VertexProperties 
   return result;
 }
 
+// Helps in having a cleaner code
 float getPositionByAxis(Vertex v, int axis){
   if(axis == 0) return v.position.x;
   if(axis == 1) return v.position.y;
@@ -478,7 +498,8 @@ float getPositionByAxis(Vertex v, int axis){
   return v.position.w;
 }
 
-void clipHelper(vector<Vertex> &vertices, vector<Vertex> &resultingVertices, 
+// Clip the axis based on the given factor for the boundary - this function returns an array of vertices
+void clipAxisBasedOnFactor(vector<Vertex> &vertices, vector<Vertex> &resultingVertices, 
   vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis, float factor){
 
   Vertex previousVertex = vertices[vertices.size() - 1];
@@ -514,11 +535,10 @@ void clipHelper(vector<Vertex> &vertices, vector<Vertex> &resultingVertices,
 };
 
 
-// 0.00313f
+// Clips given axis to the left and to the right - the result is stored in vertices
+int clipTriangleOnNumberedAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis){
 
-int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, vector<VertexProperties> &properties, vector<VertexProperties> &resultingProperties, int axis){
-
-  clipHelper(vertices, resultingList, properties, resultingProperties, axis, clippingFactor);
+  clipAxisBasedOnFactor(vertices, resultingList, properties, resultingProperties, axis, clippingFactor);
   vertices.clear();
   properties.clear();
 
@@ -526,7 +546,7 @@ int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, ve
     return 0;
   }
 
-  clipHelper(resultingList, vertices, resultingProperties, properties, axis, -clippingFactor);
+  clipAxisBasedOnFactor(resultingList, vertices, resultingProperties, properties, axis, -clippingFactor);
   resultingList.clear();
   resultingProperties.clear();
 
@@ -534,6 +554,7 @@ int clipTriangleAxis(vector<Vertex>& vertices, vector<Vertex>& resultingList, ve
 }
 
 
+// Simply give w = 2*z / focal_length
 void transformToClippingSpace(vector<vec4>& vertices, Camera cam){
   for(size_t i = 0; i < vertices.size(); i++){
     vertices[i].w = vertices[i].z / SCREEN_HEIGHT;
@@ -541,8 +562,7 @@ void transformToClippingSpace(vector<vec4>& vertices, Camera cam){
 }
 
 
-void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& objects, Camera cam, Light light)
-{
+void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& objects, Camera cam, Light light){
 
   currentMaximumX = -numeric_limits<int>::max(); 
   currentMinimumX = numeric_limits<int>::max();;
@@ -551,11 +571,11 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
   float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH];
+  // Initialise buffers
   if(doAntiAliasing){
     for(int y = 0; y < SCREEN_HEIGHT; y++){
       for(int x = 0; x < SCREEN_WIDTH; x++){
         depthBuffer[y][x] = 0.0f;
-        shadowMap[y][x] = 0.0f;
         currentPixels[y][x] = zero;
       }
     }
@@ -563,12 +583,20 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
     for(int y = 0; y < SCREEN_HEIGHT; y++){
       for(int x = 0; x < SCREEN_WIDTH; x++){
         depthBuffer[y][x] = 0.0f;
+      }
+    }
+  }
+  if(doShadows){
+    for(int y = 0; y < SCREEN_HEIGHT; y++){
+      for(int x = 0; x < SCREEN_WIDTH; x++){
         shadowMap[y][x] = 0.0f;
       }
     }
   }
   Camera lightCamera;
   lightCamera = getLightCamera(light);
+
+  // If shadows are activated, first compute the shadow map
   if(doShadows){
     for(uint32_t i = 0; i < triangles.size(); i++){
       vector<Vertex> vertices(3);
@@ -590,6 +618,8 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
   }
 
   // #pragma omp parallel for
+
+  // Normal triangles, without texture
   for(size_t i = 0; i < triangles.size(); i++){
     vec4 currentNormal = triangles[i].normal;
     vec3 currentReflectance(1,1,1);
@@ -603,10 +633,10 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
     vertices[1].texturePosition = triangles[i].uv1;
     vertices[2].texturePosition = triangles[i].uv2;
 
-
     DrawPolygon(screen, vertices, cam, triangles[i].color, depthBuffer, shadowMap, light, lightCamera, currentNormal, currentReflectance, triangles[i].hasTexture, NULL);
     }
 
+    // Object triangles, that have texture
     for(uint32_t i = 0; i < objects.size(); i++){
       for(uint32_t j = 0; j < objects[i].triangles.size(); j++){
       vec4 currentNormal = objects[i].triangles[j].normal;
@@ -628,7 +658,13 @@ void Draw(screen* screen, vector<Triangle>& triangles, vector<RenderedObject>& o
     if(doAntiAliasing){
       for(int i = currentMinimumX; i < currentMaximumX; i++){
         for(int j = currentMinimumY; j < currentMaximumY; j++){
-          PutPixelSDL(screen, i, j, doAntiAliasing ? getAliasedPixel(currentPixels, i, j) : currentPixels[i][j]);
+          PutPixelSDL(screen, i, j, getAliasedPixel(currentPixels, i, j));
+        }
+      }
+    }else{
+      for(int i = currentMinimumX; i < currentMaximumX; i++){
+        for(int j = currentMinimumY; j < currentMaximumY; j++){
+          PutPixelSDL(screen, i, j, currentPixels[i][j]);
         }
       }
     }
@@ -648,6 +684,8 @@ void Update(Camera &cam, Light &light, vector<Triangle>& triangles, vector<Rende
   const uint8_t *keyState = SDL_GetKeyboardState(NULL);
   int lastRecordedX = 0;
   int lastRecordedY = 0;
+
+  // Enable mouse camera
   SDL_GetRelativeMouseState(&lastRecordedX, &lastRecordedY);
   if( keyState[SDL_SCANCODE_W] ){
     cam.cameraPos += cam.cameraRotationX * cam.cameraRotationY * vec4(0, 0, 0.02f, 0);
@@ -670,6 +708,7 @@ void Update(Camera &cam, Light &light, vector<Triangle>& triangles, vector<Rende
     }
   if( keyState[SDL_SCANCODE_LEFT] ){
     light.lightPos -= vec3(0.02f,0,0);  
+    cout << light.lightPos.x << " " << light.lightPos.y << " " << light.lightPos.z << endl;
     }
   if( keyState[SDL_SCANCODE_RIGHT] ){
     light.lightPos += vec3(0.02f,0,0);  

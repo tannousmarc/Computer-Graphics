@@ -24,13 +24,14 @@ float clamp ( float val, float minval, float maxval ){
     return val;
 }
 
+// Luma aka luminance formula
 float getLuma(vec3 rgb){
     return sqrt(dot(rgb, vec3(0.299, 0.587, 0.114)));
 }
 
 float qualityVector[12]={1.5f, 1.5f, 1.5f, 2.0f, 2.0f, 2.0f, 2.0f, 4.0f, 8.0f, 8.0f, 8.0f, 8.0f};
 
-
+// Gives out the aliased pixel, based on the FXAA algorithm
 vec3 getAliasedPixel(vec3 currentPixels[SCREEN_HEIGHT][SCREEN_WIDTH], int x, int y){
     vec3 colorCenter = currentPixels[x][y];
 
