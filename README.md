@@ -1,6 +1,4 @@
-# COMS30115
-
-Pathtracer:
+# Pathtracer
 
 - Antialiasing, soft shadows, etc. (for free)
 - GI
@@ -13,7 +11,7 @@ Pathtracer:
 ![glassdeer](https://user-images.githubusercontent.com/6099321/67159199-96312780-f339-11e9-9b57-828d7a7e1ceb.jpg)
 ![fogdeer](https://user-images.githubusercontent.com/6099321/67159200-96c9be00-f339-11e9-8a17-f762259ab844.jpg)
 
-Rasterizer:
+# Rasterizer
 
 - Objects
 - Textures
