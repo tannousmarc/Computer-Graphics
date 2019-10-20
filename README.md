@@ -9,10 +9,10 @@
 
 <img src="https://user-images.githubusercontent.com/6099321/67159206-9fba8f80-f339-11e9-9541-dd41a7699b0f.jpg" align="center" height="50%" width="100%" /><br />
 
-<div>
-<img src="https://user-images.githubusercontent.com/6099321/67159199-96312780-f339-11e9-9b57-828d7a7e1ceb.jpg" align="left" height="49%" width="49%" />
-<img src="https://user-images.githubusercontent.com/6099321/67159200-96c9be00-f339-11e9-8a17-f762259ab844.jpg" align="right" height="49%" width="49%" />
-</div>
+<img src="https://user-images.githubusercontent.com/6099321/67159199-96312780-f339-11e9-9b57-828d7a7e1ceb.jpg" align="center" height="60%" width="60%" />
+
+<img src="https://user-images.githubusercontent.com/6099321/67159200-96c9be00-f339-11e9-8a17-f762259ab844.jpg" align="center" height="60%" width="60%" />
+
 
 <div>
 # Rasterizer
