@@ -14,6 +14,7 @@
 <img src="https://user-images.githubusercontent.com/6099321/67159200-96c9be00-f339-11e9-8a17-f762259ab844.jpg" align="right" height="49%" width="49%" />
 </div>
 
+<div>
 # Rasterizer
 
 - Objects
@@ -21,6 +22,6 @@
 - FXAA
 - Shadow maps
 - Clipping
-
+</div>
 ![shadows](https://user-images.githubusercontent.com/6099321/67159203-98938180-f339-11e9-856e-448e4e8265a2.png)
 ![clipping](https://user-images.githubusercontent.com/6099321/67159201-97faeb00-f339-11e9-9bd1-6cf1495e6246.png)
