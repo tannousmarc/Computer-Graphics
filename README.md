@@ -1,15 +1,18 @@
 # COMS30115
 
-Raytracer:
+Pathtracer:
 
-- Kramer's rule
-- OpenMP
-- Perfect Mirrors
-- Antialiasing
-- Smooth shadows
+- Antialiasing, soft shadows, etc. (for free)
+- GI
+- BRDFs for reflective (mirrors), reflective/refractive (glass), solid materials.
+- Objects (which can use any BRDF)
+- Fog
+- Parallelism
 
 Rasterizer:
 
-- Load objects
-- FXAA
+- Objects
 - Textures
+- FXAA
+- Shadow maps
+- Clipping
