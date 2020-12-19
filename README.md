@@ -1,3 +1,5 @@
+*pretty much from scratch = used glm to not have to implement basic mathematical operations
+
 # Pathtracer
 
 - Antialiasing, soft shadows, etc. (for free)
